@@ -3,13 +3,19 @@ define([
     'esri/geometry/SpatialReference',
     'esri/geometry/support/webMercatorUtils',
     'esri/core/declare',
-    'esri/views/3d/externalRenderers'
+    'esri/layers/ImageryLayer',
+    'esri/views/3d/externalRenderers',
+    'esri/tasks/support/Query',
+    'esri/tasks/QueryTask'
 ], function (
     Camera,
     SpatialReference,
     webMercatorUtils,
     declare,
-    externalRenderers
+    ImageryLayer,
+    externalRenderers,
+    Query,
+    QueryTask
 ) {
         // Enforce strict mode
         'use strict';
@@ -145,42 +151,186 @@ define([
                 //positions.needsUpdate = true;
             },
             addBox: function (point) {
+                //
+                var view = this.view;
+                var scene = this.scene;
 
-                var coordinates = [
-                    point.x,
-                    point.y,
-                    point.z
-                ];
+                // instantiate a loader
+                var loader = new THREE.TextureLoader();
+                loader.load(
+                    'Capture.PNG',
+                    function (texture) {
+                        // Coordinate array
+                        var coordinates = [
+                            point.x,
+                            point.y,
+                            point.z + 1000
+                        ];
 
-                // Allocate storage for the result
-                var renderCoordinates = new Array(
-                    coordinates.length
+                        // Create three.js object
+                        var geometry = new THREE.PlaneBufferGeometry(200000, 200000, 1, 1);
+
+                        // do something with the texture
+                        var material = new THREE.MeshBasicMaterial({
+                            map: texture,
+                            side: THREE.DoubleSide
+                        });
+
+                        var plane = new THREE.Mesh(geometry, material);
+                        plane.position.fromArray(coordinates);
+
+                        // Transform to internal rendering space
+                        var transform = externalRenderers.renderCoordinateTransformAt(
+                            view,
+                            coordinates,
+                            point.spatialReference,
+                            new Float64Array(16)
+                        );
+                        var matrix = new THREE.Matrix4();
+                        matrix.fromArray(transform);
+                        plane.applyMatrix(matrix);
+
+                        // Add to scene
+                        scene.add(plane);
+                    }
                 );
+            },
+            downloadLandsat: function (setting, extent) {
+                // Get a new references to view
+                var view = this.view;
+                var scene = this.scene;
 
-                externalRenderers.toRenderCoordinates(
-                    this.view,
-                    coordinates,
-                    0,
-                    SpatialReference.WebMercator,
-                    renderCoordinates,
-                    0,
-                    coordinates.length / 3
-                );
+                // Instanciate image layer
+                var layer = new ImageryLayer({
+                    url: setting.url
+                });
 
-                //var geometry = new THREE.SphereGeometry(500, 32, 32);
-                var geometry = new THREE.SphereBufferGeometry(12 * 1000, 16, 16);
-                var material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-                var sphere = new THREE.Mesh(geometry, material);
-                sphere.position.set(
-                    renderCoordinates[0],
-                    renderCoordinates[1],
-                    renderCoordinates[2]
-                );
-                //sphere.translateX = renderCoordinates[0];
-                //sphere.translateY = renderCoordinates[1];
-                //sphere.translateZ = renderCoordinates[2];
-                this.scene.add(sphere);
+                // Load lauer
+                layer.load().then(function (e) {
+                    // Get objectid field
+                    var oidField = layer.objectIdField;
+
+                    // Query 
+                    var query = new Query({
+                        geometry: extent,
+                        returnGeometry: true,
+                        outFields: [
+                            setting.date,
+                            setting.sensor,
+                            setting.cloud
+                        ],
+                        outSpatialReference: view.spatialReference,
+                        where: "CloudCover <= 20"
+                    });
+
+                    // Query task
+                    var queryTask = new QueryTask({
+                        url: setting.url
+                    });
+                    queryTask.execute(query).then(function (e) {
+                        e.features.forEach(function (f) {
+                            // Footprint extent
+                            var extent = f.geometry.extent;
+
+                            //
+                            layer.fetchImage(extent, 100, 100).then(function (r) {
+                                
+                            });
+
+                            // Instantiate a loader
+                            var loader = new THREE.TextureLoader();
+                            loader.load(
+                                'Capture.PNG',
+                                function (texture) {
+
+                                    
+
+                                    // Footprint center
+                                    var center = extent.center;
+
+                                    // Center coordinate array
+                                    var coordinates = [
+                                        center.x,
+                                        center.y,
+                                        1000
+                                    ];
+
+                                    // Transform to internal rendering space
+                                    var transform = externalRenderers.renderCoordinateTransformAt(
+                                        view,
+                                        coordinates,
+                                        f.geometry.spatialReference,
+                                        new Float64Array(16)
+                                    );
+                                    var matrix = new THREE.Matrix4();
+                                    matrix.fromArray(transform);
+
+                                    // Create three.js object
+                                    var geometry = new THREE.PlaneBufferGeometry(100000, 100000, 1, 1);
+
+                                    // do something with the texture
+                                    var material = new THREE.MeshBasicMaterial({
+                                        map: texture,
+                                        side: THREE.DoubleSide
+                                    });
+
+                                    var plane = new THREE.Mesh(geometry, material);
+                                    plane.position.fromArray(coordinates);
+                                    plane.applyMatrix(matrix);
+
+                                    // Add to scene
+                                    scene.add(plane);
+
+                                }
+                            );
+                        });
+                    });
+                });
             }
         });
     }
 );
+
+ ////
+//var view = this.view;
+//var scene = this.scene;
+
+//// instantiate a loader
+//var loader = new THREE.TextureLoader();
+//loader.load(
+//    'Capture.PNG',
+//    function (texture) {
+//        // Coordinate array
+//        var coordinates = [
+//            point.x,
+//            point.y,
+//            point.z + 1000
+//        ];
+
+//        // Create three.js object
+//        var geometry = new THREE.PlaneBufferGeometry(200000, 200000, 1, 1);
+
+//        // do something with the texture
+//        var material = new THREE.MeshBasicMaterial({
+//            map: texture,
+//            side: THREE.DoubleSide
+//        });
+
+//        var plane = new THREE.Mesh(geometry, material);
+//        plane.position.fromArray(coordinates);
+
+//        // Transform to internal rendering space
+//        var transform = externalRenderers.renderCoordinateTransformAt(
+//            view,
+//            coordinates,
+//            point.spatialReference,
+//            new Float64Array(16)
+//        );
+//        var matrix = new THREE.Matrix4();
+//        matrix.fromArray(transform);
+//        plane.applyMatrix(matrix);
+
+//        // Add to scene
+//        scene.add(plane);
+//    }
+//);
