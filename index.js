@@ -49,7 +49,6 @@ require(
                 {
                     provider: 'USGS',
                     url: 'https://landsatlook.usgs.gov/arcgis/rest/services/LandsatLook/ImageServer',
-                    //objectid: 'OBJECTID',
                     date: 'acquisitionDate',
                     sensor: 'sensor',
                     cloud: 'cloudCover'
@@ -57,7 +56,7 @@ require(
                 {
                     provider: 'ESRI',
                     url: 'https://landsat2.arcgis.com/arcgis/rest/services/Landsat/PS/ImageServer',
-                    //objectid: 'OBJECTID',
+                    function: 'Pansharpened Enhanced with DRA',
                     date: 'AcquisitionDate',
                     sensor: 'SensorName',
                     cloud: 'CloudCover'
@@ -142,7 +141,6 @@ require(
             //    // prevents panning with the mouse drag event
             //    e.stopPropagation();
             //});
-
         });
     }
 );

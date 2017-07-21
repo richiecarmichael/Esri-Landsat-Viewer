@@ -6,7 +6,10 @@ define([
     'esri/layers/ImageryLayer',
     'esri/views/3d/externalRenderers',
     'esri/tasks/support/Query',
-    'esri/tasks/QueryTask'
+    'esri/tasks/QueryTask',
+    'esri/request',
+    'dojo/_base/lang',
+    'dojo/string'
 ], function (
     Camera,
     SpatialReference,
@@ -15,7 +18,10 @@ define([
     ImageryLayer,
     externalRenderers,
     Query,
-    QueryTask
+    QueryTask,
+    esriRequest,
+    lang,
+    string
 ) {
         // Enforce strict mode
         'use strict';
@@ -220,7 +226,8 @@ define([
                             setting.cloud
                         ],
                         outSpatialReference: view.spatialReference,
-                        where: "CloudCover <= 20"
+                        where: "CloudCover <= 20",
+                        num: 1
                     });
 
                     // Query task
@@ -231,20 +238,42 @@ define([
                         e.features.forEach(function (f) {
                             // Footprint extent
                             var extent = f.geometry.extent;
+                            var id = f.attributes[oidField];
 
-                            //
-                            layer.fetchImage(extent, 100, 100).then(function (r) {
-                                
+                            // Construct url to lock raster image
+                            var url = setting.url;
+                            url += '/exportImage?f=image';
+                            url += string.substitute('&bbox=${xmin},${ymin},${xmax},${ymax}', {
+                                xmin: extent.xmin,
+                                ymin: extent.ymin,
+                                xmax: extent.xmax,
+                                ymax: extent.ymax
+                            });
+                            url += '&bboxSR=' + view.spatialReference.wkid;
+                            url += '&imageSR=' + view.spatialReference.wkid;
+                            url += string.substitute('&size=${w},${h}', {
+                                w: 256,
+                                h: 256
+                            });
+                            //url += string.substitute('&time=${f},${t}', {
+                            //    f: 0,
+                            //    t: Date.UTC(year, 0, 1)
+                            //});
+                            url += '&format=' + 'png';
+                            url += '&interpolation=' + 'RSP_BilinearInterpolation'; // RSP_NearestNeighbor
+                            url += '&mosaicRule=' + string.substitute('{mosaicMethod:"esriMosaicLockRaster",lockRasterIds:[${id}]}', {
+                                id: id
+                            });
+                            url += '&renderingRule=' + string.substitute('{rasterFunction:\'${function}\'}', {
+                                function: setting.function
                             });
 
                             // Instantiate a loader
                             var loader = new THREE.TextureLoader();
+                            loader.setCrossOrigin('');
                             loader.load(
-                                'Capture.PNG',
+                                url,
                                 function (texture) {
-
-                                    
-
                                     // Footprint center
                                     var center = extent.center;
 
@@ -271,7 +300,8 @@ define([
                                     // do something with the texture
                                     var material = new THREE.MeshBasicMaterial({
                                         map: texture,
-                                        side: THREE.DoubleSide
+                                        side: THREE.DoubleSide,
+                                        transparent: true
                                     });
 
                                     var plane = new THREE.Mesh(geometry, material);
@@ -280,7 +310,6 @@ define([
 
                                     // Add to scene
                                     scene.add(plane);
-
                                 }
                             );
                         });
@@ -290,47 +319,3 @@ define([
         });
     }
 );
-
- ////
-//var view = this.view;
-//var scene = this.scene;
-
-//// instantiate a loader
-//var loader = new THREE.TextureLoader();
-//loader.load(
-//    'Capture.PNG',
-//    function (texture) {
-//        // Coordinate array
-//        var coordinates = [
-//            point.x,
-//            point.y,
-//            point.z + 1000
-//        ];
-
-//        // Create three.js object
-//        var geometry = new THREE.PlaneBufferGeometry(200000, 200000, 1, 1);
-
-//        // do something with the texture
-//        var material = new THREE.MeshBasicMaterial({
-//            map: texture,
-//            side: THREE.DoubleSide
-//        });
-
-//        var plane = new THREE.Mesh(geometry, material);
-//        plane.position.fromArray(coordinates);
-
-//        // Transform to internal rendering space
-//        var transform = externalRenderers.renderCoordinateTransformAt(
-//            view,
-//            coordinates,
-//            point.spatialReference,
-//            new Float64Array(16)
-//        );
-//        var matrix = new THREE.Matrix4();
-//        matrix.fromArray(transform);
-//        plane.applyMatrix(matrix);
-
-//        // Add to scene
-//        scene.add(plane);
-//    }
-//);
