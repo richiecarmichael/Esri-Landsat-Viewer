@@ -22,8 +22,11 @@ require(
     [
         'app/LandsatRenderer',
         'esri/Map',
+        'esri/Graphic',
         'esri/geometry/ScreenPoint',
         'esri/geometry/Extent',
+        //'esri/symbols/SimpleLineSymbol',
+        'esri/symbols/SimpleFillSymbol',
         'esri/views/SceneView',
         'esri/views/3d/externalRenderers',
         'esri/tasks/QueryTask',
@@ -33,8 +36,11 @@ require(
     function (
         LandsatRenderer,
         Map,
+        Graphic,
         ScreenPoint,
         Extent,
+        //SimpleLineSymbol,
+        SimpleFillSymbol,
         SceneView,
         ExternalRenderers,
         QueryTask,
@@ -49,6 +55,7 @@ require(
                 {
                     provider: 'USGS',
                     url: 'https://landsatlook.usgs.gov/arcgis/rest/services/LandsatLook/ImageServer',
+                    function: null,
                     date: 'acquisitionDate',
                     sensor: 'sensor',
                     cloud: 'cloudCover'
@@ -56,12 +63,16 @@ require(
                 {
                     provider: 'ESRI',
                     url: 'https://landsat2.arcgis.com/arcgis/rest/services/Landsat/PS/ImageServer',
-                    function: 'Pansharpened Enhanced with DRA',
+                    function: 'Pansharpened Natural Color',
                     date: 'AcquisitionDate',
                     sensor: 'SensorName',
                     cloud: 'CloudCover'
                 }
             ];
+
+            //
+            var _start = null;
+            var _isDrawingBox = true;
 
             // Entry point to the three.js rendering framework
             var _landsatRenderer = null;
@@ -119,6 +130,7 @@ require(
                 );
             });
 
+            //
             _view.on('click', function (e) {
                 //
                 //var h = e.native.target.height;
@@ -137,10 +149,70 @@ require(
                 _landsatRenderer.downloadLandsat(IMAGERY[1], extent);
 
             });
-            //_view.on('drag', function (e) {
-            //    // prevents panning with the mouse drag event
-            //    e.stopPropagation();
-            //});
+
+            //
+            _view.on('drag', function (e) {
+                // Exit if draw box not enabled.
+                if (!_isDrawingBox) { return; }
+
+                // prevents panning with the mouse drag event
+                e.stopPropagation();
+
+                switch (e.action) {
+                    case 'start':
+                        _start = null
+                        var screenPoint1 = new ScreenPoint({
+                            x: e.x,
+                            y: e.y
+                        });
+                        _view.hitTest(screenPoint1).then(function (f) {
+                            if (f && f.results && f.results.length > 0 && f.results[0].mapPoint) {
+                                _start = f.results[0].mapPoint;
+                            }
+                        });
+                        if (!_start) {
+                            _isDrawingBox = false;
+                        }
+                        break;
+                    case 'update':
+                        var update = null;
+                        var screenPoint1 = new ScreenPoint({
+                            x: e.x,
+                            y: e.y
+                        });
+                        _view.hitTest(screenPoint1).then(function (f) {
+                            if (f && f.results && f.results.length > 0 && f.results[0].mapPoint) {
+                                update = f.results[0].mapPoint;
+                            }
+                        });
+                        if (!update) { return; }
+
+                        _view.graphics.removeAll();
+                        _view.graphics.add(new Graphic({
+                            geometry: new Extent({
+                                xmin: Math.min(_start.x, update.x),
+                                ymin: Math.min(_start.y, update.y),
+                                xmax: Math.max(_start.x, update.x),
+                                ymax: Math.max(_start.y, update.y),
+                                spatialReference: _view.spatialReference
+                            }),
+                            symbol: new SimpleFillSymbol({
+                                color: [0, 0, 0, 0.25],
+                                style: 'none',
+                                outline: {
+                                    color: [255, 0, 0, 0.9],
+                                    width: 1
+                                }
+                            })
+                        }));
+
+                        break;
+                    case 'end':
+                        _isDrawingBox = false;
+
+                        break;
+                }
+            });
         });
     }
 );
