@@ -2,6 +2,7 @@ define([
     'esri/Camera',
     'esri/geometry/SpatialReference',
     'esri/geometry/support/webMercatorUtils',
+    'esri/geometry/Extent',
     'esri/core/declare',
     'esri/layers/ImageryLayer',
     'esri/views/3d/externalRenderers',
@@ -9,11 +10,13 @@ define([
     'esri/tasks/QueryTask',
     'esri/request',
     'dojo/_base/lang',
-    'dojo/string'
+    'dojo/string',
+    'dojo/request'
 ], function (
     Camera,
     SpatialReference,
     webMercatorUtils,
+    Extent,
     declare,
     ImageryLayer,
     externalRenderers,
@@ -21,7 +24,8 @@ define([
     QueryTask,
     esriRequest,
     lang,
-    string
+    string,
+    request
 ) {
         // Enforce strict mode
         'use strict';
@@ -29,6 +33,7 @@ define([
         // Constants
         var THREE = window.THREE;
         var RADIUS = 6378137;
+        var SIZE = 256;
 
         return declare([], {
             constructor: function () {
@@ -68,7 +73,7 @@ define([
                     }
                 };
 
-                //
+                // Instanciate scene and camera
                 this.scene = new THREE.Scene();
                 this.camera = new THREE.PerspectiveCamera();
 
@@ -156,51 +161,6 @@ define([
                 //}
                 //positions.needsUpdate = true;
             },
-            addBox: function (point) {
-                //
-                var view = this.view;
-                var scene = this.scene;
-
-                // instantiate a loader
-                var loader = new THREE.TextureLoader();
-                loader.load(
-                    'Capture.PNG',
-                    function (texture) {
-                        // Coordinate array
-                        var coordinates = [
-                            point.x,
-                            point.y,
-                            point.z + 1000
-                        ];
-
-                        // Create three.js object
-                        var geometry = new THREE.PlaneBufferGeometry(200000, 200000, 1, 1);
-
-                        // do something with the texture
-                        var material = new THREE.MeshBasicMaterial({
-                            map: texture,
-                            side: THREE.DoubleSide
-                        });
-
-                        var plane = new THREE.Mesh(geometry, material);
-                        plane.position.fromArray(coordinates);
-
-                        // Transform to internal rendering space
-                        var transform = externalRenderers.renderCoordinateTransformAt(
-                            view,
-                            coordinates,
-                            point.spatialReference,
-                            new Float64Array(16)
-                        );
-                        var matrix = new THREE.Matrix4();
-                        matrix.fromArray(transform);
-                        plane.applyMatrix(matrix);
-
-                        // Add to scene
-                        scene.add(plane);
-                    }
-                );
-            },
             downloadLandsat: function (setting, extent) {
                 // Get a new references to view
                 var view = this.view;
@@ -211,7 +171,9 @@ define([
                     url: setting.url
                 });
 
-                // Load lauer
+                var h = 0;
+
+                // Load layer. Required to get objectid field.
                 layer.load().then(function (e) {
                     // Get objectid field
                     var oidField = layer.objectIdField;
@@ -226,8 +188,8 @@ define([
                             setting.cloud
                         ],
                         outSpatialReference: view.spatialReference,
-                        where: "CloudCover <= 20",
-                        num: 1
+                        where: 'CloudCover <= 20'//,
+                        //num: 1
                     });
 
                     // Query task
@@ -242,7 +204,7 @@ define([
 
                             // Construct url to lock raster image
                             var url = setting.url;
-                            url += '/exportImage?f=image';
+                            url += '/exportImage?f=json';
                             url += string.substitute('&bbox=${xmin},${ymin},${xmax},${ymax}', {
                                 xmin: extent.xmin,
                                 ymin: extent.ymin,
@@ -252,66 +214,76 @@ define([
                             url += '&bboxSR=' + view.spatialReference.wkid;
                             url += '&imageSR=' + view.spatialReference.wkid;
                             url += string.substitute('&size=${w},${h}', {
-                                w: 256,
-                                h: 256
+                                w: SIZE,
+                                h: SIZE
                             });
-                            //url += string.substitute('&time=${f},${t}', {
-                            //    f: 0,
-                            //    t: Date.UTC(year, 0, 1)
-                            //});
                             url += '&format=' + 'png';
-                            url += '&interpolation=' + 'RSP_BilinearInterpolation'; // RSP_NearestNeighbor
+                            url += '&interpolation=' + 'RSP_BilinearInterpolation';
                             url += '&mosaicRule=' + string.substitute('{mosaicMethod:"esriMosaicLockRaster",lockRasterIds:[${id}]}', {
                                 id: id
                             });
-                            url += '&renderingRule=' + string.substitute('{rasterFunction:\'${function}\'}', {
-                                function: setting.function
+                            url += '&renderingRule=' + string.substitute('{rasterFunction:\'${fxn}\'}', {
+                                fxn: setting.function
                             });
 
-                            // Instantiate a loader
-                            var loader = new THREE.TextureLoader();
-                            loader.setCrossOrigin('');
-                            loader.load(
-                                url,
-                                function (texture) {
-                                    // Footprint center
-                                    var center = extent.center;
-
-                                    // Center coordinate array
-                                    var coordinates = [
-                                        center.x,
-                                        center.y,
-                                        1000
-                                    ];
-
-                                    // Transform to internal rendering space
-                                    var transform = externalRenderers.renderCoordinateTransformAt(
-                                        view,
-                                        coordinates,
-                                        f.geometry.spatialReference,
-                                        new Float64Array(16)
-                                    );
-                                    var matrix = new THREE.Matrix4();
-                                    matrix.fromArray(transform);
-
-                                    // Create three.js object
-                                    var geometry = new THREE.PlaneBufferGeometry(100000, 100000, 1, 1);
-
-                                    // do something with the texture
-                                    var material = new THREE.MeshBasicMaterial({
-                                        map: texture,
-                                        side: THREE.DoubleSide,
-                                        transparent: true
-                                    });
-
-                                    var plane = new THREE.Mesh(geometry, material);
-                                    plane.position.fromArray(coordinates);
-                                    plane.applyMatrix(matrix);
-
-                                    // Add to scene
-                                    scene.add(plane);
+                            // 
+                            request(url, {
+                                handleAs: 'json',
+                                headers: {
+                                    // Required for CORS
+                                    'X-Requested-With': null
                                 }
-                            );
+                            }).then(function (json) {
+                                // Get corrected extent
+                                var extent2 = Extent.fromJSON(json.extent);
+
+                                // Instantiate a loader
+                                var loader = new THREE.TextureLoader();
+                                loader.setCrossOrigin('');
+                                loader.load(
+                                    json.href,
+                                    function (texture) {
+                                        // Center coordinate array
+                                        var coordinates = [
+                                            extent2.center.x,
+                                            extent2.center.y,
+                                            ++h * 10000
+                                        ];
+
+                                        // Transform to internal rendering space
+                                        var transform = externalRenderers.renderCoordinateTransformAt(
+                                            view,
+                                            coordinates,
+                                            f.geometry.spatialReference,
+                                            new Float64Array(16)
+                                        );
+                                        var matrix = new THREE.Matrix4();
+                                        matrix.fromArray(transform);
+
+                                        // Create three.js object
+                                        var geometry = new THREE.PlaneBufferGeometry(
+                                            extent2.width,
+                                            extent2.height,
+                                            1,
+                                            1
+                                        );
+
+                                        // do something with the texture
+                                        var material = new THREE.MeshBasicMaterial({
+                                            map: texture,
+                                            side: THREE.DoubleSide,
+                                            transparent: true
+                                        });
+
+                                        var plane = new THREE.Mesh(geometry, material);
+                                        plane.position.fromArray(coordinates);
+                                        plane.applyMatrix(matrix);
+
+                                        // Add to scene
+                                        scene.add(plane);
+                                    }
+                                );
+                            });
                         });
                     });
                 });
