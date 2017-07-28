@@ -25,10 +25,121 @@ html, body {
     box-sizing: border-box;
 }
 
-#map {
+/*#map {
     position: absolute;
-    top: 0;
+    top: 100px;
     left: 0;
     right: 0;
     bottom: 0;
+}*/
+
+/*#map {
+    height: 200px;
 }
+
+.rc-menu {
+    position: absolute;
+    top: 95px;
+    left: 15px;
+}*/
+
+/*.btn-group-vertical {
+    display: inline-block;
+}*/
+
+/*.rc-toolbar-vertical {
+    position: relative;
+    display: inline-block;
+}
+
+
+.rc-toolbar-vertical > .btn-group-vertical {
+    position: relative;
+    float: left;
+}*/
+
+/*
+
+.rc-toolbar-vertical > .btn,
+.rc-toolbar-vertical > .btn-group {
+    margin-top: 5px;
+}*/
+
+/*.btn-toolbar {
+    margin-top: -5px;
+}
+
+.btn-toolbar .btn,
+.btn-toolbar .btn-group,
+.btn-toolbar .input-group {
+    float:
+}
+
+.btn-toolbar > .btn,
+.btn-toolbar > .btn-group,
+.btn-toolbar > .input-group {
+    margin-left: 5px;
+}*/
+
+
+
+
+/*.buttons {
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    background-color: white;
+    color: rgb(110, 110, 110);
+    cursor: pointer;
+}
+
+.button-group {
+    display: inline-block;
+}
+
+.button {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+}
+
+.button:not(:first-child) {
+    border-top: 1px solid rgba(50,50,50,0.25);
+}
+
+.button.active {
+    background-color: #e6791c;
+    color: rgb(46, 46, 46);
+}
+
+.button:hover {
+    background-color: #f2f2f2;
+    color: rgb(46, 46, 46);
+}
+
+.button.active:hover {
+    background-color: #e59d60;
+    color: rgb(46, 46, 46);
+}
+
+.button i {
+    position: relative;
+    top: 8px;
+    left: 8px;
+    bottom: 0;
+    right: 0;
+    pointer-events: none;
+}*/
+
+/*.button-text {
+    position: relative;
+    top: 8px;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 400;
+    pointer-events: none;
+}*/

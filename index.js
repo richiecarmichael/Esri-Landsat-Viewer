@@ -12,6 +12,7 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 */
+
 require(
     {
         packages: [{
@@ -31,6 +32,7 @@ require(
         'esri/views/3d/externalRenderers',
         'esri/tasks/QueryTask',
         'esri/tasks/support/Query',
+        'esri/widgets/Home',
         'dojo/domReady!'
     ],
     function (
@@ -44,7 +46,8 @@ require(
         SceneView,
         ExternalRenderers,
         QueryTask,
-        Query
+        Query,
+        Home
     ) {
         $(document).ready(function () {
             // Enforce strict mode
@@ -53,20 +56,22 @@ require(
             //
             var IMAGERY = [
                 {
-                    provider: 'USGS',
+                    name: 'USGS',
                     url: 'https://landsatlook.usgs.gov/arcgis/rest/services/LandsatLook/ImageServer',
                     function: null,
                     date: 'acquisitionDate',
                     sensor: 'sensor',
-                    cloud: 'cloudCover'
+                    cloud: 'cloudCover',
+                    sun: 'sunElevation'
                 },
                 {
-                    provider: 'ESRI',
+                    name: 'ESRI',
                     url: 'https://landsat2.arcgis.com/arcgis/rest/services/Landsat/PS/ImageServer',
                     function: 'Pansharpened Natural Color',
                     date: 'AcquisitionDate',
                     sensor: 'SensorName',
-                    cloud: 'CloudCover'
+                    cloud: 'CloudCover',
+                    sun: 'SunElevation'
                 }
             ];
 
@@ -94,7 +99,7 @@ require(
                 container: 'map',
                 ui: {
                     components: [
-                        'zoom',
+                        //'zoom',
                         'compass'
                     ]
                 },
@@ -114,6 +119,9 @@ require(
                     starsEnabled : true
                 }
             });
+
+            // Add home
+            _view.ui.add(new Home({ view: _view }), "top-left");
 
             // Perform display setup once the map is located.
             _view.then(function () {
@@ -160,12 +168,12 @@ require(
 
                 switch (e.action) {
                     case 'start':
-                        _start = null
-                        var screenPoint1 = new ScreenPoint({
-                            x: e.x,
-                            y: e.y
-                        });
-                        _view.hitTest(screenPoint1).then(function (f) {
+                        _start = null;
+                        //var screenPoint1 = new ScreenPoint({
+                        //    x: e.x,
+                        //    y: e.y
+                        //});
+                        _view.hitTest({ x: e.x, y: e.y }).then(function (f) {
                             if (f && f.results && f.results.length > 0 && f.results[0].mapPoint) {
                                 _start = f.results[0].mapPoint;
                             }
@@ -176,11 +184,11 @@ require(
                         break;
                     case 'update':
                         var update = null;
-                        var screenPoint1 = new ScreenPoint({
-                            x: e.x,
-                            y: e.y
-                        });
-                        _view.hitTest(screenPoint1).then(function (f) {
+                        //var screenPoint2 = new ScreenPoint({
+                        //    x: e.x,
+                        //    y: e.y
+                        //});
+                        _view.hitTest({ x: e.x, y: e.y }).then(function (f) {
                             if (f && f.results && f.results.length > 0 && f.results[0].mapPoint) {
                                 update = f.results[0].mapPoint;
                             }
