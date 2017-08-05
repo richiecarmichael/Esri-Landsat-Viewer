@@ -16,28 +16,24 @@
 define([
     'esri/Camera',
     'esri/geometry/SpatialReference',
-    'esri/geometry/support/webMercatorUtils',
     'esri/geometry/Extent',
     'esri/core/declare',
     'esri/layers/ImageryLayer',
     'esri/views/3d/externalRenderers',
     'esri/tasks/support/Query',
     'esri/tasks/QueryTask',
-    'esri/request',
     'dojo/_base/lang',
     'dojo/string',
     'dojo/request'
 ], function (
     Camera,
     SpatialReference,
-    webMercatorUtils,
     Extent,
     declare,
     ImageryLayer,
     externalRenderers,
     Query,
     QueryTask,
-    esriRequest,
     lang,
     string,
     request
@@ -203,8 +199,8 @@ define([
                             setting.cloud
                         ],
                         outSpatialReference: view.spatialReference,
-                        where: 'CloudCover <= 20'//,
-                        //num: 1
+                        where: 'CloudCover <= 20',
+                        num: 1
                     });
 
                     // Query task
