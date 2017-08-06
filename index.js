@@ -12,18 +12,17 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 */
-
 require({
-        packages: [{
-            name: 'dojo-bootstrap',
-            location: '/js/dojo-bootstrap'
-      }, {
-            name: 'calcite-maps',
-            location: '/js/calcite-maps'
-      }, {
-            name: 'image-renderer',
-            location: '/js/image-renderer'
-        }]
+    packages: [{
+        name: 'dojo-bootstrap',
+        location: '/js/dojo-bootstrap'
+    }, {
+        name: 'calcite-maps',
+        location: '/js/calcite-maps'
+    }, {
+        name: 'image-renderer',
+        location: '/js/image-renderer'
+    }]
     }, [
         'image-renderer/Landsat',
         'esri/Map',
@@ -37,8 +36,11 @@ require({
         'esri/tasks/support/Query',
         'esri/widgets/Home',
         'esri/widgets/Search',
+        'dojo/query',
         'dojo-bootstrap/Collapse',
         'dojo-bootstrap/Dropdown',
+        'dojo-bootstrap/Modal',
+        'dojo-bootstrap/Carousel',
         'calcite-maps/calcitemaps-v0.4',
         'dojo/domReady!'
     ],
@@ -54,7 +56,8 @@ require({
         QueryTask,
         Query,
         Home,
-        Search
+        Search,
+         query
     ) {
         // Enforce strict mode
         'use strict';
@@ -158,15 +161,14 @@ require({
 
         //
         _view.on('click', function (e) {
-            var extent = new Extent({
-                xmin: e.mapPoint.x - 100,
-                ymin: e.mapPoint.y - 100,
-                xmax: e.mapPoint.x + 100,
-                ymax: e.mapPoint.y + 100,
-                spatialReference: e.mapPoint.spatialReference
-            });
-            _landsat.downloadLandsat(IMAGERY[1], extent);
-            //console.log(_view.camera.toJSON());
+            //            var extent = new Extent({
+            //                xmin: e.mapPoint.x - 100,
+            //                ymin: e.mapPoint.y - 100,
+            //                xmax: e.mapPoint.x + 100,
+            //                ymax: e.mapPoint.y + 100,
+            //                spatialReference: e.mapPoint.spatialReference
+            //            });
+            //            _landsat.downloadLandsat(IMAGERY[1], extent);
         });
 
         //
@@ -234,11 +236,16 @@ require({
                     break;
             }
         });
-    
+
         //
         var searchWidget = new Search({
             container: 'searchWidgetDiv',
             view: _view
+        });
+    
+        // Sync basemaps for map and scene
+        query('#selectBasemapPanel, #settingsSelectBasemap').on('change', function(e){
+            _view.map.basemap = e.target.options[e.target.selectedIndex].dataset.vector;         
         });
     }
 );

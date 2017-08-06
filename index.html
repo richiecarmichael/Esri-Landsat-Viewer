@@ -1,5 +1,6 @@
 ﻿<!DOCTYPE html>
 <html>
+
 <head>
     <title>Image Stacker</title>
     <meta http-equiv='content-type' content='text/html;charset=utf-8' />
@@ -18,6 +19,7 @@
     <script src='//js.arcgis.com/4.4/'></script>
     <script src='index.js'></script>
 </head>
+
 <body class='calcite-maps calcite-nav-top'>
     <!-- Navbar -->
     <nav class='navbar calcite-navbar navbar-fixed-top calcite-text-light calcite-bg-dark'>
@@ -34,7 +36,11 @@
             </a>
             <ul class='dropdown-menu' role='menu'>
                 <li><a role='menuitem' tabindex='0' href='#' data-target='#panelLandsat' aria-haspopup='true'><span class='glyphicon glyphicon-print'></span> Landsat</a></li>
+                <li><a role='menuitem' tabindex='0' href='#' data-target='#panelBasemaps' aria-haspopup='true'><span class='glyphicon glyphicon-th-large'></span> Basemaps</a></li>
+                <li><a role='menuitem' tabindex='0' href='#' data-target='#panelBookmarks' aria-haspopup='true'><span class='glyphicon glyphicon-book'></span> Bookmarks</a></li>
                 <li><a role='menuitem' tabindex='0' href='#' id='calciteToggleNavbar' aria-haspopup='true'><span class='glyphicon glyphicon-fullscreen'></span> Full Map</a></li>
+                <li><a role='menuitem' tabindex='0' href='#' data-target='#panelInfo' aria-haspopup='true'><span class='glyphicon glyphicon-info-sign'></span> Info</a></li>
+                <li><a role='menuitem' tabindex='0' href='#' data-target='#modalSplash' aria-haspopup='true' data-toggle='modal'> About</a></li>
             </ul>
         </div>
         <!-- Title -->
@@ -52,6 +58,33 @@
             </li>
         </ul>
     </nav>
+    <!-- Modal Window -->
+    <div class='modal fade' id='modalSplash' tabindex='-1' role='dialog' aria-labelledby='splashlModal'>
+        <div class='modal-dialog' role='document'>
+            <div class='modal-content'>
+                <div class='modal-body'>
+                    <div class='container-fluid'>
+                        <div class='row'>
+                            <div class='splash-body'>
+                                <div class='text-center'>
+                                    <h3>Welcome to Calcite Maps</h3>
+                                    <hr>
+                                    <p>Use this application to interactively design your application and to explore the different colors, styles and layouts. When you are done, apply the CSS styles and classes to your own apps. Get a jump-start by starting with one of the <a href='../index.html'>sample applications</a>.</p>
+                                    <br>
+                                    <div class='form-inline'>
+                                        <div class='form-group'>
+                                            <button type='button' class='btn btn-success btn-lg' data-dismiss='modal'>Get started</button>
+                                        </div>
+                                    </div>
+                                    <br>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Map  -->
     <div class='calcite-map calcite-map-absolute'>
         <div id='map'></div>
@@ -68,10 +101,147 @@
             </div>
             <div id='collapseLandsat' class='panel-collapse collapse in' role='tabpanel' aria-labelledby='headingLandsat'>
                 <div class='panel-body'>
-                    <div id='landsatDiv'></div>
+                    <p>Use this application to quickly prototype and design map applications interactively.</p>
+                    <div class='form-horizontal calcite-form-padding'>
+                        <div class='form-group'>
+                            <label for='settingsSelectBasemap' class='col-xs-3 control-label'>Basemap</label>
+                            <div class='col-xs-9'>
+                                <select id='settingsSelectBasemap' class='form-control'>                            
+                                    <option value='streets' data-vector='streets-vector'>Streets</option>
+                                    <option value='satellite' data-vector='satellite'>Satellite</option>
+                                    <option value='hybrid' data-vector='hybrid'>Hybrid</option>
+                                    <option value='national-geographic' data-vector='national-geographic'>National Geographic</option>
+                                    <option value='topo' data-vector='topo-vector'>Topographic</option>
+                                    <option value='gray' data-vector='gray-vector' selected>Gray</option>
+                                    <option value='dark-gray' data-vector='dark-gray-vector'>Dark Gray</option>
+                                    <option value='osm' data-vector='osm'>Open Street Map</option>
+                                    <option value='dark-gray' data-vector='streets-night-vector'>Streets Night</option>
+                                    <option value='streets' data-vector='streets-navigation-vector'>Streets Navigation</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class='form-group'>
+                            <label for='settingsView' class='col-xs-3 control-label'>View</label>
+                            <div class='col-xs-9'>
+                                <label class='checkbox-inline'>
+                                    <input type='checkbox' id='settings2dView' checked> 2D
+                                </label>
+                                <label class='checkbox-inline'>
+                                    <input type='checkbox' id='settings3dView' checked> 3D
+                                </label>
+                            </div>
+                        </div>
+                        <div class='form-group'>
+                            <label for='settingsAddLayer' class='col-xs-3 control-label'>Layer</label>
+                            <div class='col-xs-9'>
+                                <input type='text' class='form-control' id='settingsFeatureLayerUrl' placeholder='e.g. https://services.arcgis.com/uCXeTVveQzP4IIcx/arcgis/rest/services/GreaterLosAngelesAreaDemographics/FeatureServer/0' value='https://services.arcgis.com/uCXeTVveQzP4IIcx/arcgis/rest/services/GreaterLosAngelesAreaDemographics/FeatureServer/0'>
+                            </div>
+                        </div>
+                        <div class='form-group'>
+                            <label for='settingsLayerOpacity' class='col-xs-3 control-label'>Opacity</label>
+                            <div class='col-xs-9'>
+                                <select id='settingsLayerOpacity' class='form-control'>
+                                  <option value='0.25'>0.25</option>
+                                  <option value='0.50'>0.5</option>
+                                  <option value='0.75'>0.75</option>
+                                  <option value='1.0' selected>1.0</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class='form-group'>
+                            <div class='col-xs-9 col-xs-offset-3'>
+                                <button id='settingsAddLayer' type='button' class='btn btn-primary btn-block'>Add Layer</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        <!-- Panel - Info -->
+        <div id='panelInfo' class='panel collapse'>
+            <div id='headingInfo' class='panel-heading' role='tab'>
+                <div class='panel-title'>
+                    <a class='panel-toggle' role='button' data-toggle='collapse' href='#collapseInfo' aria-expanded='true' aria-controls='collapseInfo'><span class='glyphicon glyphicon-info-sign' aria-hidden='true'></span><span class='panel-label'>Info</span></a>
+                    <a class='panel-close' role='button' data-toggle='collapse' tabindex='0' href='#panelInfo'><span class='esri-icon esri-icon-close' aria-hidden='true'></span></a>
+                </div>
+            </div>
+            <div id='collapseInfo' class='panel-collapse collapse' role='tabpanel' aria-labelledby='headingInfo'>
+                <div class='panel-body'>
+                    <p><span class='esri-icon esri-icon-map-pin pull-left'></span><span class='info-title'>Calcite Maps</span></p>
+                    <p>Use this application to quickly prototype and design map applications interactively.</p>
+                    <p>Learn more about building custom<a href='https://github.com/esri/calcite-maps'> Calcite Maps apps here</a>.</p>
+                </div>
+            </div>
+        </div>
+        <!-- Panel - Basemaps -->
+        <div id='panelBasemaps' class='panel collapse'>
+            <div id='headingBasemaps' class='panel-heading' role='tab'>
+                <div class='panel-title'>
+                    <a class='panel-toggle collapsed' role='button' data-toggle='collapse' href='#collapseBasemaps' aria-expanded='false' aria-controls='collapseBasemaps'><span class='glyphicon glyphicon-th-large' aria-hidden='true'></span><span class='panel-label'>Basemaps</span></a>
+                    <a class='panel-close' role='button' data-toggle='collapse' tabindex='0' href='#panelBasemaps'><span class='esri-icon esri-icon-close' aria-hidden='true'></span></a>
+                </div>
+            </div>
+            <div id='collapseBasemaps' class='panel-collapse collapse' role='tabpanel' aria-labelledby='headingBasemaps'>
+                <div class='panel-body'>
+                    <select id='selectBasemapPanel' class='form-control'> 
+                        <option value='streets' data-vector='streets-vector'>Streets</option>
+                        <option value='satellite' data-vector='satellite' selected>Satellite</option>
+                        <option value='hybrid' data-vector='hybrid'>Hybrid</option>
+                        <option value='national-geographic' data-vector='national-geographic'>National Geographic</option>
+                        <option value='topo' data-vector='topo-vector'>Topographic</option>
+                        <option value='gray' data-vector='gray-vector'>Gray</option>
+                        <option value='dark-gray' data-vector='dark-gray-vector'>Dark Gray</option>
+                        <option value='osm' data-vector='osm'>Open Street Map</option>
+                        <option value='dark-gray' data-vector='streets-night-vector'>Streets Night</option>
+                        <option value='streets' data-vector='streets-navigation-vector'>Streets Navigation</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <!-- Panel - Bookmarks -->
+        <div id='panelBookmarks' class='panel collapse'>
+            <div id='headingBookmarks' class='panel-heading' role='tab'>
+                <div class='panel-title'>
+                    <a class='panel-toggle collapsed' role='button' data-toggle='collapse' href='#collapseBookmarks' aria-expanded='false' aria-controls='collapseBookmarks'><span class='glyphicon glyphicon-book' aria-hidden='true'></span><span class='panel-label'>Bookmarks</span></a>
+                    <a class='panel-close' role='button' data-toggle='collapse' tabindex='0' href='#panelBookmarks'><span class='esri-icon esri-icon-close' aria-hidden='true'></span></a>
+                </div>
+            </div>
+            <div id='collapseBookmarks' class='panel-collapse collapse' role='tabpanel' aria-labelledby='headingBookmarks'>
+                <div class='panel-body'>
+                    <div id='carousel-example-generic' class='carousel slide' data-ride='carousel'>
+                        <ol class='carousel-indicators'>
+                            <li data-target='#carousel-example-generic' data-slide-to='0' class='active'></li>
+                            <li data-target='#carousel-example-generic' data-slide-to='1'></li>
+                            <li data-target='#carousel-example-generic' data-slide-to='2'></li>
+                        </ol>
+                        <div class='carousel-inner' role='listbox'>
+                            <div class='item active'>
+                                <img src='https://placeholdit.imgix.net/~text?txtsize=33&txt=300%C3%97200&w=300&h=200' alt='...'>
+                                <div class='carousel-caption'>Test1</div>
+                            </div>
+                            <div class='item'>
+                                <img src='https://placeholdit.imgix.net/~text?txtsize=33&txt=300%C3%97200&w=300&h=200' alt='...'>
+                                <div class='carousel-caption'>Test2</div>
+                            </div>
+                            <div class='item'>
+                                <img src='https://placeholdit.imgix.net/~text?txtsize=33&txt=300%C3%97200&w=300&h=200' alt='...'>
+                                <div class='carousel-caption'>Test3</div>
+                            </div>
+                        </div>
+                        <a class='left carousel-control' href='#carousel-example-generic' role='button' data-slide='prev'>
+                            <span class='glyphicon glyphicon-chevron-left' aria-hidden='true'></span>
+                            <span class='sr-only'>Previous</span>
+                        </a>
+                        <a class='right carousel-control' href='#carousel-example-generic' role='button' data-slide='next'>
+                            <span class='glyphicon glyphicon-chevron-right' aria-hidden='true'></span>
+                            <span class='sr-only'>Next</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </body>
+
 </html>
