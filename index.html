@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Image Stacker</title>
+    <title>Landsat Viewer</title>
     <meta http-equiv='content-type' content='text/html;charset=utf-8' />
     <meta name='viewport' content='width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no' />
     <meta name='author' content='Esri' />
@@ -10,11 +10,14 @@
     <meta name='description' content='' />
     <meta name='robots' content='index,follow' />
 
+    <link rel='shortcut icon' type='image/ico' href='img/favicon.ico'>
+    <link rel='stylesheet' href='css/nouislider.css'>
     <link rel='stylesheet' href='css/calcite-maps-bootstrap.min-v0.4.css'>
     <link rel='stylesheet' href='css/calcite-maps-arcgis-4.x.min-v0.4.css'>
     <link rel='stylesheet' href='//js.arcgis.com/4.4/esri/css/main.css'>
     <link rel='stylesheet' href='index.css'>
 
+    <script src='js/nouislider.min.js'></script>
     <script src='js/three.min.js'></script>
     <script src='//js.arcgis.com/4.4/'></script>
     <script src='index.js'></script>
@@ -45,7 +48,7 @@
         </div>
         <!-- Title -->
         <div class='calcite-title calcite-overflow-hidden'>
-            <span class='calcite-title-main'>Landsat Image Finder</span>
+            <span class='calcite-title-main'>Landsat Viewer</span>
             <span class='calcite-title-divider hidden-xs'></span>
             <span class='calcite-title-sub hidden-xs'>Find and explore landsat imagery</span>
         </div>
@@ -101,60 +104,136 @@
             </div>
             <div id='collapseLandsat' class='panel-collapse collapse in' role='tabpanel' aria-labelledby='headingLandsat'>
                 <div class='panel-body'>
-                    <p>Use this application to quickly prototype and design map applications interactively.</p>
-                    <div class='form-horizontal calcite-form-padding'>
-                        <div class='form-group'>
-                            <label for='settingsSelectBasemap' class='col-xs-3 control-label'>Basemap</label>
-                            <div class='col-xs-9'>
-                                <select id='settingsSelectBasemap' class='form-control'>                            
-                                    <option value='streets' data-vector='streets-vector'>Streets</option>
-                                    <option value='satellite' data-vector='satellite'>Satellite</option>
-                                    <option value='hybrid' data-vector='hybrid'>Hybrid</option>
-                                    <option value='national-geographic' data-vector='national-geographic'>National Geographic</option>
-                                    <option value='topo' data-vector='topo-vector'>Topographic</option>
-                                    <option value='gray' data-vector='gray-vector' selected>Gray</option>
-                                    <option value='dark-gray' data-vector='dark-gray-vector'>Dark Gray</option>
-                                    <option value='osm' data-vector='osm'>Open Street Map</option>
-                                    <option value='dark-gray' data-vector='streets-night-vector'>Streets Night</option>
-                                    <option value='streets' data-vector='streets-navigation-vector'>Streets Navigation</option>
-                                </select>
+                    <ul class='nav nav-tabs' role='tablist'>
+                        <li role='presentation' class='active'>
+                            <a href='#area' aria-controls='area' role='tab' data-toggle='tab'>Area</a>
+                        </li>
+                        <li role='presentation'>
+                            <a href='#filter' aria-controls='filter' role='tab' data-toggle='tab'>Filter</a>
+                        </li>
+                        <li role='presentation'>
+                            <a href='#explore' aria-controls='explore' role='tab' data-toggle='tab'>Explore</a>
+                        </li>
+                        <li role='presentation'>
+                            <a href='#order' aria-controls='order' role='tab' data-toggle='tab'>Order</a>
+                        </li>
+                    </ul>
+                    <div class='tab-content'>
+                        <div role='tabpanel' class='tab-pane active' id='area'>
+                            <div class='calcite-form-title'>Define an area of interest.</div>
+                            <div class='form-horizontal calcite-form-padding'>
+                                <div class='form-group'>
+                                    <div class='col-xs-12'>
+                                        <button id='removeBox' type='button' style='width: 40%;' class='btn btn-primary'>Clear</button><button id='addBox' type='button' style='width: 40%;' class='btn btn-primary '>Box</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class='form-group'>
-                            <label for='settingsView' class='col-xs-3 control-label'>View</label>
-                            <div class='col-xs-9'>
-                                <label class='checkbox-inline'>
-                                    <input type='checkbox' id='settings2dView' checked> 2D
-                                </label>
-                                <label class='checkbox-inline'>
-                                    <input type='checkbox' id='settings3dView' checked> 3D
-                                </label>
+                        <div role='tabpanel' class='tab-pane' id='filter'>
+                            <div class='calcite-form-title'>Request preview images based on the following filters.</div>
+                            <div class='form-horizontal calcite-form-padding'>
+                                <div class='form-group'>
+                                    <label for='host' class='col-xs-3 control-label'>Host</label>
+                                    <div class='col-xs-9'>
+                                        <select id='host' class='form-control'>                            
+                                            <option value='usgs' data-vector='usgs' selected>USGS</option>
+                                            <option value='esri' data-vector='esri'>Esri</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class='form-group'>
+                                    <label for='date' class='col-xs-3 control-label'>Date</label>
+                                    <div class='col-xs-7'>
+                                        <div id='sliderDate'></div>
+                                    </div>
+                                    <div id='dateReading' style='font-size: 10px;' class='col-xs-2'></div>
+                                </div>
+                                <div class='form-group'>
+                                    <label for='cloud' class='col-xs-3 control-label'>Cloud</label>
+                                    <div class='col-xs-7'>
+                                        <div id='sliderCloud'></div>
+                                    </div>
+                                    <div id='cloudReading' class='col-xs-2'></div>
+                                </div>
+                                <div class='form-group'>
+                                    <label for='host' class='col-xs-3 control-label'>Resolution</label>
+                                    <div class='col-xs-9'>
+                                        <select id='host' class='form-control'>
+                                            <option value='64' data-vector='64'>64</option>
+                                            <option value='128' data-vector='128'>128</option>
+                                            <option value='256' data-vector='256' selected>256</option>
+                                            <option value='512' data-vector='512'>512</option>
+                                            <option value='1024' data-vector='1024'>1024</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class='form-group'>
+                                    <label for='settingsView' class='col-xs-3 control-label'>Satellites</label>
+                                    <div class='col-xs-9'>
+                                        <label class='checkbox-inline'>
+                                            <input type='checkbox' id='settings2dView' checked>Landsat 8 OLI
+                                        </label>
+                                    </div>
+                                    <div class='col-xs-9 col-xs-offset-3'>
+                                        <label class='checkbox-inline'>
+                                            <input type='checkbox' id='settings3dView' checked>Landsat 7 ETM+ SLC-off
+                                        </label>
+                                    </div>
+                                    <div class='col-xs-9 col-xs-offset-3'>
+                                        <label class='checkbox-inline'>
+                                            <input type='checkbox' id='settings3dView' checked>Landsat 7 ETM+ SLC-on
+                                        </label>
+                                    </div>                                    
+<!--
+                                    <div class='col-xs-9 col-xs-offset-3'>
+                                        <label class='checkbox-inline'>
+                                            <input type='checkbox' id='settings3dView' checked>Landsat 4-5 TM
+                                        </label>
+                                    </div>
+                                    <div class='col-xs-9 col-xs-offset-3'>
+                                        <label class='checkbox-inline'>
+                                            <input type='checkbox' id='settings3dView' checked>Landsat 1-5 MSS
+                                        </label>
+                                    </div>
+-->
+                                </div>
+                                <div class='form-group'>
+                                    <div class='col-xs-9 col-xs-offset-3'>
+                                        <button id='download' type='button' class='btn btn-primary btn-block'>Download</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class='form-group'>
-                            <label for='settingsAddLayer' class='col-xs-3 control-label'>Layer</label>
-                            <div class='col-xs-9'>
-                                <input type='text' class='form-control' id='settingsFeatureLayerUrl' placeholder='e.g. https://services.arcgis.com/uCXeTVveQzP4IIcx/arcgis/rest/services/GreaterLosAngelesAreaDemographics/FeatureServer/0' value='https://services.arcgis.com/uCXeTVveQzP4IIcx/arcgis/rest/services/GreaterLosAngelesAreaDemographics/FeatureServer/0'>
+                        <div role='tabpanel' class='tab-pane' id='explore'>
+                            <div class='calcite-form-title'>Dynamically sort and preview Landsat imagery.</div>
+                            <div class='form-horizontal calcite-form-padding'>
+                                                            <div class='form-group'>
+                                <label for='test1' class='col-xs-3 control-label'>Cloud</label>
+                                <div class='col-xs-9'>
+                                    <button id='cloud-up' type='button' class='btn btn-primary'><span class='glyphicon glyphicon-chevron-up'></span></button>
+                                    <button id='cloud-down' type='button' class='btn btn-primary'><span class='glyphicon glyphicon-chevron-down'></span></button>
+                                </div>
                             </div>
+                            <div class='form-group'>
+                                <label for='test2' class='col-xs-3 control-label'>Date</label>
+                                <div class='col-xs-9'>
+                                    <button id='date-up' type='button' class='btn btn-primary'><span class='glyphicon glyphicon-chevron-up'></span></button>
+                                    <button id='date-down' type='button' class='btn btn-primary'><span class='glyphicon glyphicon-chevron-down'></span></button>
+                                </div>
+                            </div>
+                            <div class='form-group'>
+                                <label for='yest3' class='col-xs-3 control-label'>Swipe</label>
+                                <div class='col-xs-8'>
+                                    <div id='sliderSwipe'></div>
+                                </div>
+                            </div>
+                            </div>
+
                         </div>
-                        <div class='form-group'>
-                            <label for='settingsLayerOpacity' class='col-xs-3 control-label'>Opacity</label>
-                            <div class='col-xs-9'>
-                                <select id='settingsLayerOpacity' class='form-control'>
-                                  <option value='0.25'>0.25</option>
-                                  <option value='0.50'>0.5</option>
-                                  <option value='0.75'>0.75</option>
-                                  <option value='1.0' selected>1.0</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class='form-group'>
-                            <div class='col-xs-9 col-xs-offset-3'>
-                                <button id='settingsAddLayer' type='button' class='btn btn-primary btn-block'>Add Layer</button>
-                            </div>
+                        <div role='tabpanel' class='tab-pane' id='order'>
+                            <div class='calcite-form-title'>Order or download original resolution imagery.</div>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>

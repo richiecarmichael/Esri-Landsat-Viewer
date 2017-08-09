@@ -24,3 +24,8 @@ html, body {
     -webkit-box-sizing: border-box;
     box-sizing: border-box;
 }
+
+
+.calcite-panels .panel-body {
+    max-height: 550px;
+}

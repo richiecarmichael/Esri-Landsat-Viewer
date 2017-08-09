@@ -279,7 +279,7 @@ define([
                                             1
                                         );
 
-                                        // do something with the texture
+                                        // Do something with the texture
                                         var material = new THREE.MeshBasicMaterial({
                                             map: texture,
                                             side: THREE.DoubleSide,
