@@ -12,348 +12,496 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 */
-require({
-    packages: [{
-        name: 'dojo-bootstrap',
-        location: '/js/dojo-bootstrap'
-    }, {
-        name: 'calcite-maps',
-        location: '/js'
-    }, {
-        name: 'image-renderer',
-        location: '/js'
-    }]
-    }, [
-        'image-renderer/landsat',
+require([
         'esri/Map',
+        'esri/Camera',
         'esri/Graphic',
+        'esri/geometry/SpatialReference',
         'esri/geometry/ScreenPoint',
         'esri/geometry/Extent',
+        'esri/layers/ImageryLayer',
         'esri/symbols/SimpleFillSymbol',
         'esri/views/SceneView',
         'esri/views/3d/externalRenderers',
         'esri/tasks/QueryTask',
         'esri/tasks/support/Query',
         'esri/widgets/Home',
-        'esri/widgets/Search',
-        'dojo/query',
-        'dojo/dom',
-        'dojo-bootstrap/Collapse',
-        'dojo-bootstrap/Dropdown',
-        'dojo-bootstrap/Modal',
-        'dojo-bootstrap/Carousel',
-        'dojo-bootstrap/Tab',
-        'calcite-maps/calcitemaps-v0.4',
+        'dojo/string',
+        'dojo/request',
         'dojo/domReady!'
     ],
     function (
-        Landsat,
         Map,
+        Camera,
         Graphic,
+        SpatialReference,
         ScreenPoint,
         Extent,
+        ImageryLayer,
         SimpleFillSymbol,
         SceneView,
         ExternalRenderers,
         QueryTask,
         Query,
         Home,
-        Search,
-        query,
-        dom
+        string,
+        request
     ) {
         // Enforce strict mode
         'use strict';
 
-        //
-        var IMAGERY = [{
-            name: 'USGS',
-            url: 'https://landsatlook.usgs.gov/arcgis/rest/services/LandsatLook/ImageServer',
-            function: null,
-            date: 'acquisitionDate',
-            sensor: 'sensor',
-            cloud: 'cloudCover',
-            sun: 'sunElevation'
-        },{
-            name: 'ESRI',
-            url: 'https://landsat2.arcgis.com/arcgis/rest/services/Landsat/PS/ImageServer',
-            function: 'Pansharpened Natural Color',
-            date: 'AcquisitionDate',
-            sensor: 'SensorName',
-            cloud: 'CloudCover',
-            sun: 'SunElevation'
-        }];
-
-        //
-        var _drag = {
-            enabled: false,
-            start: null,
-            graphic: null
-        };
-
-        // Entry point to the three.js rendering framework
-        var _landsat = null;
-
-        // Define map
-        var _view = new SceneView({
-            camera: {
-                position: {
-                    x: -11141653,
-                    y: 1178945,
-                    z: 6491147,
-                    spatialReference: {
-                        wkid: 102100
-                    }
-                },
-                heading: 0,
-                tilt: 23
-            },
-            padding: {
-                top: 50,
-                bottom: 0
-            },
-            popup: {
-                dockEnabled: false,
-                dockOptions: {
-                    buttonEnabled: false
-                }
-            },
-            container: 'map',
-            ui: {
-                components: [
-                    //'zoom',
-                    'compass'
-                ]
-            },
-            map: new Map({
-                basemap: 'satellite'
-            }),
-            environment: {
-                lighting: {
-                    directShadowsEnabled: false,
-                    ambientOcclusionEnabled: false,
-                    cameraTrackingEnabled: true
-                },
-                atmosphereEnabled: true,
-                atmosphere: {
-                    quality: 'low'
-                },
-                starsEnabled: true
-            }
-        });
-
-        // Add home
-        _view.ui.add(new Home({
-            view: _view
-        }), 'top-left');
-
-        // Perform display setup once the map is located.
-        _view.then(function () {
-            // Continue to refresh the display even if stationary.
-            _view._stage.setRenderParams({
-                idleSuspend: false
-            });
-
-            // Load satellite layer
-            _landsat = new Landsat();
-            ExternalRenderers.add(
-                _view,
-                _landsat
-            );
-        });
-    
-        //
-        _view.on('drag', function (e) {
-            // Exit if draw not enabled.
-            if (!_drag.enabled) { return; }
-
-            // Prevents panning with the mouse drag event.
-            e.stopPropagation();
-
-            switch (e.action) {
-                case 'start':
-                    // Initialize starting location.
-                    _drag.start = null;
-                    
-                    // Get starting position from hit test.
-                    _view.hitTest({
-                        x: e.x,
-                        y: e.y
-                    }).then(function (f) {
-                        if (f && f.results && f.results.length > 0 && f.results[0].mapPoint) {
-                            _drag.start = f.results[0].mapPoint;
-                        }
-                    });
-                    
-                    // If nothing found disable drawing (start-over).
-                    if (!_drag.start) {
-                        _drag.enabled = false;
-                    }
-                    break;
-                case 'update':
-                    // Find current mouse location
-                    var update = null;
-                    _view.hitTest({
-                        x: e.x,
-                        y: e.y
-                    }).then(function (f) {
-                        if (f && f.results && f.results.length > 0 && f.results[0].mapPoint) {
-                            update = f.results[0].mapPoint;
-                        }
-                    });
-                    
-                    // 
-                    if (!update) {return;}
-                    
-                    var extent = new Extent({
-                        xmin: Math.min(_drag.start.x, update.x),
-                        ymin: Math.min(_drag.start.y, update.y),
-                        xmax: Math.max(_drag.start.x, update.x),
-                        ymax: Math.max(_drag.start.y, update.y),
-                        spatialReference: _view.spatialReference
-                    });
-                    
-                    var symbol = null;
-                    
-                    if (_drag.graphic){
-                        _view.graphics.remove(_drag.graphic);
-                        symbol = _drag.graphic.symbol.clone();
-                    } else{
-                        symbol = new SimpleFillSymbol({
-                            color: [0, 0, 0, 0.25],
-                            style: 'none',
-                            outline: {
-                                color: [255, 0, 0, 0.9],
-                                width: 2
-                            }
-                        });
-                    }
-                       
-                    _drag.graphic = new Graphic({
-                        geometry: extent,
-                        symbol: symbol
-                    });
-
-                    _view.graphics.add(_drag.graphic);
-
-                    break;
-                case 'end':
-                    _drag.enabled = false;
-                    _drag.start = null;
-
-                    break;
-            }
-        });
-
-        // Add search widget (located in menu bar).
-        var searchWidget = new Search({
-            container: 'searchWidgetDiv',
-            view: _view
-        });
-    
-        // Sync basemaps for map.
-        query('#selectBasemapPanel').on('change', function(e){
-            _view.map.basemap = e.target.options[e.target.selectedIndex].dataset.vector;         
-        });
-    
-        // Clear AOI box
-        query('#removeBox').on('click', function(e){
-            if (_drag.graphic){
-                _view.graphics.remove(_drag.graphic);
-            }
-        });
-    
-        // Add AOI box
-        query('#addBox').on('click', function(e){
-            _drag.enabled = true;
+        $(document).ready(function () {
+            // Constants
+            var THREE = window.THREE;
+            var RADIUS = 6378137;
+            var SIZE = 256;
+            var SPACING = 10000;
             
-            //_landsat.downloadLandsat(IMAGERY[1], extent);      
-        });
-    
-        // Download landsat preview images.
-        query('#download').on('click', function(e){
-            if (!_drag.graphic){
-                // User has not picked an extent.
-                return;
-            }
+            //
+            var _page = 1;
             
-            // Download imagery
-            _landsat.downloadLandsat(
-                IMAGERY[1],
-                _drag.graphic.geometry
-            );      
-        });
-        
-        // Date slider
-        var sliderDate = document.getElementById('sliderDate');
-        sliderDate.style.margin = '10px 15px 0 15px'; // top, right, bottom, left
-        noUiSlider.create(sliderDate, {
-            start: [2014, 2020],
-            connect: true,
-            range: {
-                min: 2000,
-                max: 2020
-            },
-            behaviour: 'drag-tap',
-            //tooltips: [formatter, formatter],
-            orientation: 'horizontal',
-            margin: 1,
-            step: 1
-        }).on('update', function(values) {
-            var value1 = Number(values[0]);
-            var value2 = Number(values[1]);
-            dom.byId('dateReading').innerHTML = value1.toFixed() + '<br/>' + value2.toFixed();
-        });
-    
-        // Cloud slider
-        var sliderCloud = document.getElementById('sliderCloud');
-        sliderCloud.style.margin = '10px 15px 0 15px'; // top, right, bottom, left
-        noUiSlider.create(sliderCloud, {
-            start: 10,
-            connect: [true, false],
-            range: {
-                min: 0,
-                max: 50
-            },
-            orientation: 'horizontal',
-            step: 1
-        }).on('update', function(values) {
-            var value = Number(values[0]);
-            dom.byId('cloudReading').innerHTML = value.toFixed() + '%';
-        });
-    
-        // sliderSwipe
-        var sliderSwipe = document.getElementById('sliderSwipe');
-        sliderSwipe.style.height = '200px';
-        sliderSwipe.style.margin = '20px 0 10px 5px'; // top, right, bottom, left
-        noUiSlider.create(sliderSwipe, {
-            start: 100,
-            connect: [true, false],
-            range: {
-                min: 0,
-                max: 100
-            },
-            direction: 'rtl',
-            orientation: 'vertical',
-            step: 1,
-            pips: {
-                mode: 'positions',
-                values: [0, 100],
-                density: 100,
-                format: {
-                    to: function(value){
-                        switch(value){
-                            case 0:
-                                return 'Less';
-                            case 100:
-                                return 'More';
+            //
+            var IMAGERY = [{
+                name: 'USGS',
+                url: 'https://landsatlook.usgs.gov/arcgis/rest/services/LandsatLook/ImageServer',
+                function: null,
+                date: 'acquisitionDate',
+                sensor: 'sensor',
+                cloud: 'cloudCover',
+                sun: 'sunElevation'
+            },{
+                name: 'ESRI',
+                url: 'https://landsat2.arcgis.com/arcgis/rest/services/Landsat/PS/ImageServer',
+                function: 'Pansharpened Natural Color',
+                date: 'AcquisitionDate',
+                sensor: 'SensorName',
+                cloud: 'CloudCover',
+                sun: 'SunElevation'
+            }];
+
+            // Drag object
+            var _drag = {
+                enabled: false,
+                start: null,
+                graphic: null
+            };
+            
+            // Entry point to the three.js rendering framework
+            //var _landsat = null;
+
+            // Define map
+            var _view = new SceneView({
+                camera: {
+                    position: {
+                        x: -11141653,
+                        y: 1178945,
+                        z: 6491147,
+                        spatialReference: {
+                            wkid: 102100
                         }
                     },
-                    from: function(){}
+                    heading: 0,
+                    tilt: 23
+                },
+                popup: {
+                    dockEnabled: false,
+                    dockOptions: {
+                        buttonEnabled: false
+                    }
+                },
+                container: 'map',
+                ui: {
+                    components: [
+                        'compass',
+                        'zoom'
+                    ]
+                },
+                map: new Map({
+                    basemap: 'satellite'
+                }),
+                environment: {
+                    lighting: {
+                        directShadowsEnabled: false,
+                        ambientOcclusionEnabled: false,
+                        cameraTrackingEnabled: true
+                    },
+                    atmosphereEnabled: true,
+                    atmosphere: {
+                        quality: 'low'
+                    },
+                    starsEnabled: true
                 }
+            });
+
+            // Add home
+            _view.ui.add(new Home({
+                view: _view
+            }), 'top-left');
+
+            // Perform display setup once the map is located.
+            _view.then(function () {
+                // Continue to refresh the display even if stationary.
+                _view._stage.setRenderParams({
+                    idleSuspend: false
+                });
+
+                // Load satellite layer
+                ExternalRenderers.add(
+                    _view,
+                    _landsat
+                );
+            });
+            
+            // Handle drag operations.
+            _view.on('drag', function (e) {
+                // Exit if draw not enabled.
+                if (!_drag.enabled) { return; }
+
+                // Prevents panning with the mouse drag event.
+                e.stopPropagation();
+
+                switch (e.action) {
+                    case 'start':
+                        // Initialize starting location.
+                        _drag.start = null;
+
+                        // Get starting position from hit test.
+                        _view.hitTest({
+                            x: e.x,
+                            y: e.y
+                        }).then(function (f) {
+                            if (f && f.results && f.results.length > 0 && f.results[0].mapPoint) {
+                                _drag.start = f.results[0].mapPoint;
+                            }
+                        });
+
+                        // If nothing found disable drawing (start-over).
+                        if (!_drag.start) {
+                            _drag.enabled = false;
+                        }
+                        break;
+                    case 'update':
+                        // Find current mouse location
+                        var update = null;
+                        _view.hitTest({
+                            x: e.x,
+                            y: e.y
+                        }).then(function (f) {
+                            if (f && f.results && f.results.length > 0 && f.results[0].mapPoint) {
+                                update = f.results[0].mapPoint;
+                            }
+                        });
+
+                        // 
+                        if (!update) {return;}
+
+                        var extent = new Extent({
+                            xmin: Math.min(_drag.start.x, update.x),
+                            ymin: Math.min(_drag.start.y, update.y),
+                            xmax: Math.max(_drag.start.x, update.x),
+                            ymax: Math.max(_drag.start.y, update.y),
+                            spatialReference: _view.spatialReference
+                        });
+
+                        var symbol = null;
+
+                        if (_drag.graphic){
+                            _view.graphics.remove(_drag.graphic);
+                            symbol = _drag.graphic.symbol.clone();
+                        } else{
+                            symbol = new SimpleFillSymbol({
+                                color: [0, 0, 0, 0.25],
+                                style: 'none',
+                                outline: {
+                                    color: [255, 0, 0, 0.9],
+                                    width: 2
+                                }
+                            });
+                        }
+
+                        _drag.graphic = new Graphic({
+                            geometry: extent,
+                            symbol: symbol
+                        });
+
+                        _view.graphics.add(_drag.graphic);
+
+                        break;
+                    case 'end':
+                        // Disable dragging.
+                        _drag.enabled = false;
+                        _drag.start = null;
+
+//                        // Switch to the filter pane.
+//                        domClass.remove("area", "active");
+//                        domClass.add("filter", "active");
+                                    // Download imagery
+                        _landsat.download(
+                            IMAGERY[1],
+                            _drag.graphic.geometry
+                        );
+
+                        break;
+                }
+            });
+            
+            
+            
+            // Update page visiblity.
+            updatePages();
+            function updatePages(){
+                $('.rc-page').hide();
+                $('.rc-page[data-value=' + _page + ']').show();
             }
-        }).on('update', function(values) {
-            //
+            
+            // Button clicks.
+            $('#button-previous').click(function(){
+                if (_page == 1){return;}
+                _page--;
+                updatePages();
+            });
+            $('#button-next').click(function(){
+                if (_page == 4){return;}
+                _page++;
+                updatePages();
+            });
+            $('#button-draw').click(function(){
+                _drag.enabled = true;
+            });
+            
+            // Sliders
+            $('#slider-date').slider({
+                id: 'slider-date-internal',
+                min: 1975,
+                max: 2020,
+                ticks: [1960, 1980, 2000, 2020],
+                ticks_labels: ['1960', '1980', '2000', '2020'],
+                range: true,
+                value: [2014, 2020]
+            }).slider().on('slideStop', function () {
+
+            });
+
+            // Definition of external renderer.
+            var _landsat = {
+                setup: function (context) {
+                    // Store view
+                    this.view = context.view;
+
+                    // Create the THREE.js webgl renderer
+                    this.renderer = new THREE.WebGLRenderer({
+                        context: context.gl,
+                        premultipliedAlpha: false
+                    });
+
+                    //
+                    this.renderer.setPixelRatio(window.devicePixelRatio);
+                    this.renderer.setSize(
+                        this.view.size[0],
+                        this.view.size[1]
+                    );
+
+                    // Make sure it does not clear anything before rendering
+                    //this.renderer.autoClear = false;
+                    this.renderer.autoClearDepth = false;
+                    this.renderer.autoClearColor = false;
+                    this.renderer.autoClearStencil = false;
+
+                    // The ArcGIS JS API renders to custom offscreen buffers, and not to the default framebuffers.
+                    // We have to inject this bit of code into the three.js runtime in order for it to bind those
+                    // buffers instead of the default ones.
+                    var originalSetRenderTarget = this.renderer.setRenderTarget.bind(this.renderer);
+                    this.renderer.setRenderTarget = function (target) {
+                        originalSetRenderTarget(target);
+                        if (target === null) {
+                            context.bindRenderTarget();
+                        }
+                    };
+
+                    // Instanciate scene and camera
+                    this.scene = new THREE.Scene();
+                    this.camera = new THREE.PerspectiveCamera();
+
+                    // Create both a directional light, as well as an ambient light
+                    this.directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+                    this.ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                    this.scene.add(
+                        this.directionalLight,
+                        this.ambientLight
+                    );
+
+                    // cleanup after ourselfs
+                    //context.resetWebGLState();
+                },
+                render: function (context) {
+                    // Get Esri's camera
+                    var c = context.camera;
+
+                    // Update three.js camera
+                    this.camera.position.set(c.eye[0], c.eye[1], c.eye[2]);
+                    this.camera.up.set(c.up[0], c.up[1], c.up[2]);
+                    this.camera.lookAt(new THREE.Vector3(c.center[0], c.center[1], c.center[2]));
+                    this.camera.projectionMatrix.fromArray(c.projectionMatrix);
+
+                    // Get Esri's current sun settings
+                    this.view.environment.lighting.date = this.date;
+
+                    // Update lighting
+                    var direction = context.sunLight.direction;
+                    var diffuse = context.sunLight.diffuse;
+                    var ambient = context.sunLight.ambient;
+
+                    // Update the directional light color, intensity and position
+                    this.directionalLight.color.setRGB(diffuse.color[0], diffuse.color[1], diffuse.color[2]);
+                    this.directionalLight.intensity = diffuse.intensity;
+                    this.directionalLight.position.set(direction[0], direction[1], direction[2]);
+
+                    // Update the ambient light color and intensity
+                    this.ambientLight.color.setRGB(ambient.color[0], ambient.color[1], ambient.color[2]);
+                    this.ambientLight.intensity = ambient.intensity;
+
+                    // Update objects
+                    this._updateObjects(context);
+
+                    // Render the scene
+                    this.renderer.resetGLState();
+                    this.renderer.render(this.scene, this.camera);
+
+                    // as we want to smoothly animate the ISS movement, immediately request a re-render
+                    //externalRenderers.requestRender(view);
+
+                    // cleanup
+                    context.resetWebGLState();
+                },
+                _updateObjects: function (context) {
+                    
+                },
+                download: function (setting, extent) {
+                    // Get a new references to view
+                    var view = this.view;
+                    var scene = this.scene;
+
+                    // Instanciate image layer
+                    var layer = new ImageryLayer({
+                        url: setting.url
+                    });
+
+                    var h = 0;
+
+                    // Load layer. Required to get objectid field.
+                    layer.load().then(function (e) {
+                        // Get objectid field
+                        var oidField = layer.objectIdField;
+
+                        // Query 
+                        var query = new Query({
+                            geometry: extent,
+                            returnGeometry: true,
+                            outFields: [
+                            setting.date,
+                            setting.sensor,
+                            setting.cloud
+                        ],
+                            outSpatialReference: view.spatialReference,
+                            where: 'CloudCover <= 0.1'
+                        });
+
+                        // Query task
+                        var queryTask = new QueryTask({
+                            url: setting.url
+                        });
+                        queryTask.execute(query).then(function (e) {
+                            view.goTo({
+                                target: extent.clone().set({
+                                    zmin: 0,
+                                    zmax: e.features.length * SPACING * 1.5
+                                }),
+                                heading: 0,
+                                tilt: 25
+                            }, {
+                                animate: true,
+                                duration: 2000
+                            });
+
+                            e.features.forEach(function (f) {
+                                // Footprint extent
+                                var extent = f.geometry.extent;
+                                var id = f.attributes[oidField];
+
+                                // Construct url to lock raster image
+                                var url = setting.url;
+                                url += '/exportImage?f=image';
+                                url += string.substitute('&bbox=${xmin},${ymin},${xmax},${ymax}', {
+                                    xmin: extent.xmin,
+                                    ymin: extent.ymin,
+                                    xmax: extent.xmax,
+                                    ymax: extent.ymax
+                                });
+                                url += '&bboxSR=' + view.spatialReference.wkid;
+                                url += '&imageSR=' + view.spatialReference.wkid;
+                                url += string.substitute('&size=${w},${h}', {
+                                    w: SIZE,
+                                    h: SIZE
+                                });
+                                url += '&format=' + 'png';
+                                url += '&interpolation=' + 'RSP_BilinearInterpolation';
+                                url += '&mosaicRule=' + string.substitute('{mosaicMethod:"esriMosaicLockRaster",lockRasterIds:[${id}]}', {
+                                    id: id
+                                });
+                                url += '&renderingRule=' + string.substitute('{rasterFunction:\'${fxn}\'}', {
+                                    fxn: setting.function
+                                });
+
+                                var loader = new THREE.TextureLoader();
+                                loader.setCrossOrigin('');
+                                loader.load(
+                                    url,
+                                    function (texture) {
+                                        // Center coordinate array
+                                        var coordinates = [
+                                            extent.center.x,
+                                            extent.center.y,
+                                            ++h * SPACING
+                                        ];
+
+                                        // Transform to internal rendering space
+                                        var transform = ExternalRenderers.renderCoordinateTransformAt(
+                                            view,
+                                            coordinates,
+                                            f.geometry.spatialReference,
+                                            new Float64Array(16)
+                                        );
+                                        var matrix = new THREE.Matrix4();
+                                        matrix.fromArray(transform);
+
+                                        // Create three.js object
+                                        var geometry = new THREE.PlaneBufferGeometry(
+                                            extent.width,
+                                            extent.height,
+                                            1,
+                                            1
+                                        );
+
+                                        // Do something with the texture
+                                        var material = new THREE.MeshBasicMaterial({
+                                            map: texture,
+                                            side: THREE.DoubleSide,
+                                            transparent: true
+                                        });
+
+                                        var plane = new THREE.Mesh(geometry, material);
+                                        plane.position.fromArray(coordinates);
+                                        plane.applyMatrix(matrix);
+
+                                        // Add to scene
+                                        scene.add(plane);
+                                    }
+                                );
+                            });
+                        });
+                    });
+                }
+            };
         });
     }
 );

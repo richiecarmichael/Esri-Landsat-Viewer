@@ -11,312 +11,102 @@
     <meta name='robots' content='index,follow' />
 
     <link rel='shortcut icon' type='image/ico' href='img/favicon.ico'>
-    <link rel='stylesheet' href='css/nouislider.css'>
-    <link rel='stylesheet' href='css/calcite-maps-bootstrap.min-v0.4.css'>
-    <link rel='stylesheet' href='css/calcite-maps-arcgis-4.x.min-v0.4.css'>
+    <link rel='stylesheet' href='css/bootstrap.min.css'>
+    <link rel='stylesheet' href='css/bootstrap-slider.min.css'>
     <link rel='stylesheet' href='//js.arcgis.com/4.4/esri/css/main.css'>
     <link rel='stylesheet' href='index.css'>
 
-    <script src='js/nouislider.min.js'></script>
+    <script src='js/jquery-3.2.1.min.js'></script>
+    <script src='js/bootstrap.min.js'></script>
+    <script src='js/bootstrap-slider.min.js'></script>
     <script src='js/three.min.js'></script>
     <script src='//js.arcgis.com/4.4/'></script>
     <script src='index.js'></script>
+
+    <!--
+    <script>
+        (function (i, s, o, g, r, a, m) {
+            i['GoogleAnalyticsObject'] = r; i[r] = i[r] || function () {
+                (i[r].q = i[r].q || []).push(arguments)
+            }, i[r].l = 1 * new Date(); a = s.createElement(o),
+            m = s.getElementsByTagName(o)[0]; a.async = 1; a.src = g; m.parentNode.insertBefore(a, m)
+        })(window, document, 'script', '//www.google-analytics.com/analytics.js', 'ga');
+        ga('create', 'UA-10866840-27', 'auto');
+        ga('send', 'pageview');
+    </script>
+-->
 </head>
 
-<body class='calcite-maps calcite-nav-top'>
-    <!-- Navbar -->
-    <nav class='navbar calcite-navbar navbar-fixed-top calcite-text-light calcite-bg-dark'>
-        <!-- Menu -->
-        <div class='dropdown calcite-dropdown calcite-text-dark calcite-bg-light' role='presentation'>
-            <a class='dropdown-toggle' role='menubutton' aria-haspopup='true' aria-expanded='false' tabindex='0'>
-                <div class='calcite-dropdown-toggle'>
-                    <span class='sr-only'>Toggle dropdown menu</span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-            </a>
-            <ul class='dropdown-menu' role='menu'>
-                <li><a role='menuitem' tabindex='0' href='#' data-target='#panelLandsat' aria-haspopup='true'><span class='glyphicon glyphicon-print'></span> Landsat</a></li>
-                <li><a role='menuitem' tabindex='0' href='#' data-target='#panelBasemaps' aria-haspopup='true'><span class='glyphicon glyphicon-th-large'></span> Basemaps</a></li>
-                <li><a role='menuitem' tabindex='0' href='#' data-target='#panelBookmarks' aria-haspopup='true'><span class='glyphicon glyphicon-book'></span> Bookmarks</a></li>
-                <li><a role='menuitem' tabindex='0' href='#' id='calciteToggleNavbar' aria-haspopup='true'><span class='glyphicon glyphicon-fullscreen'></span> Full Map</a></li>
-                <li><a role='menuitem' tabindex='0' href='#' data-target='#panelInfo' aria-haspopup='true'><span class='glyphicon glyphicon-info-sign'></span> Info</a></li>
-                <li><a role='menuitem' tabindex='0' href='#' data-target='#modalSplash' aria-haspopup='true' data-toggle='modal'> About</a></li>
-            </ul>
+<body>
+    <div id='map'></div>
+    <div id='left-panel'>
+        <div id='banner'>
+            <div id='banner-text'>Landsat Viewer</div>
         </div>
-        <!-- Title -->
-        <div class='calcite-title calcite-overflow-hidden'>
-            <span class='calcite-title-main'>Landsat Viewer</span>
-            <span class='calcite-title-divider hidden-xs'></span>
-            <span class='calcite-title-sub hidden-xs'>Find and explore landsat imagery</span>
-        </div>
-        <!-- Nav -->
-        <ul class='nav navbar-nav calcite-nav'>
-            <li>
-                <div class='calcite-navbar-search calcite-search-expander'>
-                    <div id='searchWidgetDiv'></div>
+        <div id='content'>
+            <div id='toolbar'>
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Search for...">
+                    <span class="input-group-btn">
+                        <button class="btn btn-default" type="button">Go!</button>
+                    </span>
                 </div>
-            </li>
-        </ul>
-    </nav>
-    <!-- Modal Window -->
-    <div class='modal fade' id='modalSplash' tabindex='-1' role='dialog' aria-labelledby='splashlModal'>
-        <div class='modal-dialog' role='document'>
-            <div class='modal-content'>
-                <div class='modal-body'>
-                    <div class='container-fluid'>
-                        <div class='row'>
-                            <div class='splash-body'>
-                                <div class='text-center'>
-                                    <h3>Welcome to Calcite Maps</h3>
-                                    <hr>
-                                    <p>Use this application to interactively design your application and to explore the different colors, styles and layouts. When you are done, apply the CSS styles and classes to your own apps. Get a jump-start by starting with one of the <a href='../index.html'>sample applications</a>.</p>
-                                    <br>
-                                    <div class='form-inline'>
-                                        <div class='form-group'>
-                                            <button type='button' class='btn btn-success btn-lg' data-dismiss='modal'>Get started</button>
-                                        </div>
-                                    </div>
-                                    <br>
-                                </div>
+            </div>
+            <div id='pages'>
+                <div class='rc-page' data-value='1'>
+                    <p>Define an area of interest by clicking the draw button below and dragging an extent on the globe.</p>
+                    <button id="button-draw" type="button" class="btn btn-primary">Draw</button>
+                </div>
+                <div class='rc-page' data-value='2'>
+                    <p>Define the criteria for preview images.</p>
+                    <div>
+                        <div class='rc-heading'>Host</div>
+                        <div class='rc-value'>
+                            <div class="btn-group">
+                                <button class="btn btn-default">USGS</button>
+                                <button data-toggle="dropdown" class="btn btn-default dropdown-toggle"><span class="caret"></span></button>
+                                <ul class="dropdown-menu">
+                                    <li class='active'><a href="#">USGS</a></li>
+                                    <li><a href="#">Esri</a></li>
+                                </ul>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Map  -->
-    <div class='calcite-map calcite-map-absolute'>
-        <div id='map'></div>
-    </div>
-    <!-- Panels -->
-    <div class='calcite-panels calcite-panels-right calcite-text-light calcite-bg-dark panel-group'>
-        <!-- Panel - Landsat -->
-        <div id='panelLandsat' class='panel collapse in'>
-            <div id='headingLandsat' class='panel-heading' role='tab'>
-                <div class='panel-title'>
-                    <a class='panel-toggle' role='button' data-toggle='collapse' href='#collapseLandsat' aria-expanded='false' aria-controls='collapseLegend'><span class='glyphicon glyphicon-list-alt' aria-hidden='true'></span><span class='panel-label'>Landsat</span></a>
-                    <a class='panel-close' role='button' data-toggle='collapse' tabindex='0' href='#panelLandsat'><span class='esri-icon esri-icon-close' aria-hidden='true'></span></a>
-                </div>
-            </div>
-            <div id='collapseLandsat' class='panel-collapse collapse in' role='tabpanel' aria-labelledby='headingLandsat'>
-                <div class='panel-body'>
-                    <ul class='nav nav-tabs' role='tablist'>
-                        <li role='presentation' class='active'>
-                            <a href='#area' aria-controls='area' role='tab' data-toggle='tab'>Area</a>
-                        </li>
-                        <li role='presentation'>
-                            <a href='#filter' aria-controls='filter' role='tab' data-toggle='tab'>Filter</a>
-                        </li>
-                        <li role='presentation'>
-                            <a href='#explore' aria-controls='explore' role='tab' data-toggle='tab'>Explore</a>
-                        </li>
-                        <li role='presentation'>
-                            <a href='#order' aria-controls='order' role='tab' data-toggle='tab'>Order</a>
-                        </li>
-                    </ul>
-                    <div class='tab-content'>
-                        <div role='tabpanel' class='tab-pane active' id='area'>
-                            <div class='calcite-form-title'>Define an area of interest.</div>
-                            <div class='form-horizontal calcite-form-padding'>
-                                <div class='form-group'>
-                                    <div class='col-xs-12'>
-                                        <button id='removeBox' type='button' style='width: 40%;' class='btn btn-primary'>Clear</button><button id='addBox' type='button' style='width: 40%;' class='btn btn-primary '>Box</button>
-                                    </div>
-                                </div>
-                            </div>
+                    <div>
+                        <div class='rc-heading'>Date</div>
+                        <div class='rc-value'>
+                            <input id='slider-date' />
                         </div>
-                        <div role='tabpanel' class='tab-pane' id='filter'>
-                            <div class='calcite-form-title'>Request preview images based on the following filters.</div>
-                            <div class='form-horizontal calcite-form-padding'>
-                                <div class='form-group'>
-                                    <label for='host' class='col-xs-3 control-label'>Host</label>
-                                    <div class='col-xs-9'>
-                                        <select id='host' class='form-control'>                            
-                                            <option value='usgs' data-vector='usgs' selected>USGS</option>
-                                            <option value='esri' data-vector='esri'>Esri</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class='form-group'>
-                                    <label for='date' class='col-xs-3 control-label'>Date</label>
-                                    <div class='col-xs-7'>
-                                        <div id='sliderDate'></div>
-                                    </div>
-                                    <div id='dateReading' style='font-size: 10px;' class='col-xs-2'></div>
-                                </div>
-                                <div class='form-group'>
-                                    <label for='cloud' class='col-xs-3 control-label'>Cloud</label>
-                                    <div class='col-xs-7'>
-                                        <div id='sliderCloud'></div>
-                                    </div>
-                                    <div id='cloudReading' class='col-xs-2'></div>
-                                </div>
-                                <div class='form-group'>
-                                    <label for='host' class='col-xs-3 control-label'>Resolution</label>
-                                    <div class='col-xs-9'>
-                                        <select id='host' class='form-control'>
-                                            <option value='64' data-vector='64'>64</option>
-                                            <option value='128' data-vector='128'>128</option>
-                                            <option value='256' data-vector='256' selected>256</option>
-                                            <option value='512' data-vector='512'>512</option>
-                                            <option value='1024' data-vector='1024'>1024</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class='form-group'>
-                                    <label for='settingsView' class='col-xs-3 control-label'>Satellites</label>
-                                    <div class='col-xs-9'>
-                                        <label class='checkbox-inline'>
-                                            <input type='checkbox' id='settings2dView' checked>Landsat 8 OLI
-                                        </label>
-                                    </div>
-                                    <div class='col-xs-9 col-xs-offset-3'>
-                                        <label class='checkbox-inline'>
-                                            <input type='checkbox' id='settings3dView' checked>Landsat 7 ETM+ SLC-off
-                                        </label>
-                                    </div>
-                                    <div class='col-xs-9 col-xs-offset-3'>
-                                        <label class='checkbox-inline'>
-                                            <input type='checkbox' id='settings3dView' checked>Landsat 7 ETM+ SLC-on
-                                        </label>
-                                    </div>                                    
-<!--
-                                    <div class='col-xs-9 col-xs-offset-3'>
-                                        <label class='checkbox-inline'>
-                                            <input type='checkbox' id='settings3dView' checked>Landsat 4-5 TM
-                                        </label>
-                                    </div>
-                                    <div class='col-xs-9 col-xs-offset-3'>
-                                        <label class='checkbox-inline'>
-                                            <input type='checkbox' id='settings3dView' checked>Landsat 1-5 MSS
-                                        </label>
-                                    </div>
--->
-                                </div>
-                                <div class='form-group'>
-                                    <div class='col-xs-9 col-xs-offset-3'>
-                                        <button id='download' type='button' class='btn btn-primary btn-block'>Download</button>
-                                    </div>
-                                </div>
-                            </div>
+                    </div>
+                    <div>
+                        <div class='rc-heading'>Cloud</div>
+                        <div class='rc-value'>
+                            <input id='slider-cloud' />
                         </div>
-                        <div role='tabpanel' class='tab-pane' id='explore'>
-                            <div class='calcite-form-title'>Dynamically sort and preview Landsat imagery.</div>
-                            <div class='form-horizontal calcite-form-padding'>
-                                                            <div class='form-group'>
-                                <label for='test1' class='col-xs-3 control-label'>Cloud</label>
-                                <div class='col-xs-9'>
-                                    <button id='cloud-up' type='button' class='btn btn-primary'><span class='glyphicon glyphicon-chevron-up'></span></button>
-                                    <button id='cloud-down' type='button' class='btn btn-primary'><span class='glyphicon glyphicon-chevron-down'></span></button>
-                                </div>
-                            </div>
-                            <div class='form-group'>
-                                <label for='test2' class='col-xs-3 control-label'>Date</label>
-                                <div class='col-xs-9'>
-                                    <button id='date-up' type='button' class='btn btn-primary'><span class='glyphicon glyphicon-chevron-up'></span></button>
-                                    <button id='date-down' type='button' class='btn btn-primary'><span class='glyphicon glyphicon-chevron-down'></span></button>
-                                </div>
-                            </div>
-                            <div class='form-group'>
-                                <label for='yest3' class='col-xs-3 control-label'>Swipe</label>
-                                <div class='col-xs-8'>
-                                    <div id='sliderSwipe'></div>
-                                </div>
-                            </div>
-                            </div>
-
+                    </div>
+                    <div>
+                        <div class='rc-heading'>Resolution</div>
+                        <div class='rc-value'>
+                            <input id='slider-resolution' />
                         </div>
-                        <div role='tabpanel' class='tab-pane' id='order'>
-                            <div class='calcite-form-title'>Order or download original resolution imagery.</div>
+                    </div>
+                    <div>
+                        <div class='rc-heading'>Satellites</div>
+                        <div class='rc-value'>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        <!-- Panel - Info -->
-        <div id='panelInfo' class='panel collapse'>
-            <div id='headingInfo' class='panel-heading' role='tab'>
-                <div class='panel-title'>
-                    <a class='panel-toggle' role='button' data-toggle='collapse' href='#collapseInfo' aria-expanded='true' aria-controls='collapseInfo'><span class='glyphicon glyphicon-info-sign' aria-hidden='true'></span><span class='panel-label'>Info</span></a>
-                    <a class='panel-close' role='button' data-toggle='collapse' tabindex='0' href='#panelInfo'><span class='esri-icon esri-icon-close' aria-hidden='true'></span></a>
+                <div class='rc-page' data-value='3'>
+                    
+                </div>
+                <div class='rc-page' data-value='4'>
+  
                 </div>
             </div>
-            <div id='collapseInfo' class='panel-collapse collapse' role='tabpanel' aria-labelledby='headingInfo'>
-                <div class='panel-body'>
-                    <p><span class='esri-icon esri-icon-map-pin pull-left'></span><span class='info-title'>Calcite Maps</span></p>
-                    <p>Use this application to quickly prototype and design map applications interactively.</p>
-                    <p>Learn more about building custom<a href='https://github.com/esri/calcite-maps'> Calcite Maps apps here</a>.</p>
-                </div>
-            </div>
-        </div>
-        <!-- Panel - Basemaps -->
-        <div id='panelBasemaps' class='panel collapse'>
-            <div id='headingBasemaps' class='panel-heading' role='tab'>
-                <div class='panel-title'>
-                    <a class='panel-toggle collapsed' role='button' data-toggle='collapse' href='#collapseBasemaps' aria-expanded='false' aria-controls='collapseBasemaps'><span class='glyphicon glyphicon-th-large' aria-hidden='true'></span><span class='panel-label'>Basemaps</span></a>
-                    <a class='panel-close' role='button' data-toggle='collapse' tabindex='0' href='#panelBasemaps'><span class='esri-icon esri-icon-close' aria-hidden='true'></span></a>
-                </div>
-            </div>
-            <div id='collapseBasemaps' class='panel-collapse collapse' role='tabpanel' aria-labelledby='headingBasemaps'>
-                <div class='panel-body'>
-                    <select id='selectBasemapPanel' class='form-control'> 
-                        <option value='streets' data-vector='streets-vector'>Streets</option>
-                        <option value='satellite' data-vector='satellite' selected>Satellite</option>
-                        <option value='hybrid' data-vector='hybrid'>Hybrid</option>
-                        <option value='national-geographic' data-vector='national-geographic'>National Geographic</option>
-                        <option value='topo' data-vector='topo-vector'>Topographic</option>
-                        <option value='gray' data-vector='gray-vector'>Gray</option>
-                        <option value='dark-gray' data-vector='dark-gray-vector'>Dark Gray</option>
-                        <option value='osm' data-vector='osm'>Open Street Map</option>
-                        <option value='dark-gray' data-vector='streets-night-vector'>Streets Night</option>
-                        <option value='streets' data-vector='streets-navigation-vector'>Streets Navigation</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-        <!-- Panel - Bookmarks -->
-        <div id='panelBookmarks' class='panel collapse'>
-            <div id='headingBookmarks' class='panel-heading' role='tab'>
-                <div class='panel-title'>
-                    <a class='panel-toggle collapsed' role='button' data-toggle='collapse' href='#collapseBookmarks' aria-expanded='false' aria-controls='collapseBookmarks'><span class='glyphicon glyphicon-book' aria-hidden='true'></span><span class='panel-label'>Bookmarks</span></a>
-                    <a class='panel-close' role='button' data-toggle='collapse' tabindex='0' href='#panelBookmarks'><span class='esri-icon esri-icon-close' aria-hidden='true'></span></a>
-                </div>
-            </div>
-            <div id='collapseBookmarks' class='panel-collapse collapse' role='tabpanel' aria-labelledby='headingBookmarks'>
-                <div class='panel-body'>
-                    <div id='carousel-example-generic' class='carousel slide' data-ride='carousel'>
-                        <ol class='carousel-indicators'>
-                            <li data-target='#carousel-example-generic' data-slide-to='0' class='active'></li>
-                            <li data-target='#carousel-example-generic' data-slide-to='1'></li>
-                            <li data-target='#carousel-example-generic' data-slide-to='2'></li>
-                        </ol>
-                        <div class='carousel-inner' role='listbox'>
-                            <div class='item active'>
-                                <img src='https://placeholdit.imgix.net/~text?txtsize=33&txt=300%C3%97200&w=300&h=200' alt='...'>
-                                <div class='carousel-caption'>Test1</div>
-                            </div>
-                            <div class='item'>
-                                <img src='https://placeholdit.imgix.net/~text?txtsize=33&txt=300%C3%97200&w=300&h=200' alt='...'>
-                                <div class='carousel-caption'>Test2</div>
-                            </div>
-                            <div class='item'>
-                                <img src='https://placeholdit.imgix.net/~text?txtsize=33&txt=300%C3%97200&w=300&h=200' alt='...'>
-                                <div class='carousel-caption'>Test3</div>
-                            </div>
-                        </div>
-                        <a class='left carousel-control' href='#carousel-example-generic' role='button' data-slide='prev'>
-                            <span class='glyphicon glyphicon-chevron-left' aria-hidden='true'></span>
-                            <span class='sr-only'>Previous</span>
-                        </a>
-                        <a class='right carousel-control' href='#carousel-example-generic' role='button' data-slide='next'>
-                            <span class='glyphicon glyphicon-chevron-right' aria-hidden='true'></span>
-                            <span class='sr-only'>Next</span>
-                        </a>
-                    </div>
+            <div id='footer'>
+                <div class="btn-group" role="group">
+                    <button id='button-previous' type="button" class="btn btn-primary">Previous</button>
+                    <button id='button-next' type="button" class="btn btn-primary">Next</button>
                 </div>
             </div>
         </div>

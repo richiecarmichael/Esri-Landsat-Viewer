@@ -25,7 +25,110 @@ html, body {
     box-sizing: border-box;
 }
 
-
-.calcite-panels .panel-body {
-    max-height: 550px;
+*:focus {
+    outline: none;
 }
+
+#map {
+    position: absolute;
+    top: 0;
+    left: 300px;
+    bottom: 0;
+    right: 0;
+    background-color: black;
+}
+
+#left-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 300px;
+    background-color: white;
+}
+
+#banner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    background-color: #0071bc;
+}
+
+#banner-text {
+    position: absolute;
+    top: 5px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 26px;
+    font-weight: 400;
+    color: white;
+}
+
+#content {
+    position: absolute;
+    top: 50px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+}
+
+#toolbar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    padding: 10px 10px 0 10px; /* top, right, bottom, and left */
+}
+
+#footer{
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 50px;
+    padding: 0 10px 5px 10px;
+}
+
+#pages {
+    position: absolute;
+    top: 50px;
+    left: 0;
+    right: 0;
+    bottom: 50px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 10px 10px 10px 10px;
+}
+
+.rc-page {
+    display: none;
+}
+
+.rc-heading{
+    display: inline-block;
+    font-weight: 700;
+    font-size:16px;
+    width: 85px;
+}
+
+.rc-value{
+    display: inline-block;
+}
+
+.slider.slider-horizontal {
+    margin-left: 10px;
+    width: 160px;
+}
+
+.slider-tick {
+/*    opacity: 1;*/
+}
+
+
+
+
+
