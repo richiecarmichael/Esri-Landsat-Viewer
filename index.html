@@ -1,6 +1,5 @@
 ﻿<!DOCTYPE html>
 <html>
-
 <head>
     <title>Landsat Viewer</title>
     <meta http-equiv='content-type' content='text/html;charset=utf-8' />
@@ -34,9 +33,8 @@
         ga('create', 'UA-10866840-27', 'auto');
         ga('send', 'pageview');
     </script>
--->
+    -->
 </head>
-
 <body>
     <div id='map'></div>
     <div id='left-panel'>
@@ -44,30 +42,23 @@
             <div id='banner-text'>Landsat Viewer</div>
         </div>
         <div id='content'>
-            <div id='toolbar'>
-                <div class="input-group">
-                    <input type="text" class="form-control" placeholder="Search for...">
-                    <span class="input-group-btn">
-                        <button class="btn btn-default" type="button">Go!</button>
-                    </span>
-                </div>
-            </div>
             <div id='pages'>
                 <div class='rc-page' data-value='1'>
                     <p>Define an area of interest by clicking the draw button below and dragging an extent on the globe.</p>
-                    <button id="button-draw" type="button" class="btn btn-primary">Draw</button>
+                    <button id='button-draw' type='button' class='btn btn-primary rc-button'>Draw</button>
                 </div>
                 <div class='rc-page' data-value='2'>
                     <p>Define the criteria for preview images.</p>
                     <div>
                         <div class='rc-heading'>Host</div>
                         <div class='rc-value'>
-                            <div class="btn-group">
-                                <button class="btn btn-default">USGS</button>
-                                <button data-toggle="dropdown" class="btn btn-default dropdown-toggle"><span class="caret"></span></button>
-                                <ul class="dropdown-menu">
-                                    <li class='active'><a href="#">USGS</a></li>
-                                    <li><a href="#">Esri</a></li>
+                            <div class='btn-group'>
+                                <button type='button' class='btn btn-primary dropdown-toggle rc-button' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>
+                                    USGS <span class='caret'></span>
+                                </button>
+                                <ul class='dropdown-menu'>
+                                    <li class='active'><a href='#'>USGS</a></li>
+                                    <li><a href='#'>Esri</a></li>
                                 </ul>
                             </div>
                         </div>
@@ -75,42 +66,180 @@
                     <div>
                         <div class='rc-heading'>Date</div>
                         <div class='rc-value'>
-                            <input id='slider-date' />
+                            <input id='slider-date' type='text' />
                         </div>
                     </div>
                     <div>
                         <div class='rc-heading'>Cloud</div>
                         <div class='rc-value'>
-                            <input id='slider-cloud' />
+                            <input id='slider-cloud' type='text' />
                         </div>
                     </div>
                     <div>
                         <div class='rc-heading'>Resolution</div>
                         <div class='rc-value'>
-                            <input id='slider-resolution' />
+                            <input id='slider-resolution' type='text' />
                         </div>
                     </div>
                     <div>
                         <div class='rc-heading'>Satellites</div>
                         <div class='rc-value'>
+                            <div class='checkbox'>
+                                <label><input type='checkbox' checked>Landsat 8 OLI</label>
+                            </div>
+                            <div class='checkbox'>
+                                <label><input type='checkbox' checked>Landsat 7 ETM+ SLC-off</label>
+                            </div>
+                            <div class='checkbox'>
+                                <label><input type='checkbox' checked>Landsat 7 ETM+ SLC-on</label>
+                            </div>
+                            <div class='checkbox'>
+                                <label><input type='checkbox' checked>Landsat 4-5 TM</label>
+                            </div>
+                            <div class='checkbox'>
+                                <label><input type='checkbox' checked>Landsat 1-5 MSS</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class='rc-heading'>Download</div>
+                        <div class='rc-value'>
+                            <button id='button-start-download' type='button' class='btn btn-primary rc-button'><span class='glyphicon glyphicon-play' aria-hidden='true'></span> Start</button>
+                            <button id='button-cancel-download' type='button' class='btn btn-primary rc-button'><span class='glyphicon glyphicon-remove' aria-hidden='true'></span> Cancel</button>
+                        </div>
+                    </div>
+                    <div id='download-progress'>
+                        <p></p>
+                        <div class='progress'>
+                            <div class='progress-bar progress-bar-striped active' role='progressbar'></div>
                         </div>
                     </div>
                 </div>
                 <div class='rc-page' data-value='3'>
-                    
+                    <p>Define the criteria for preview images.</p>
+                    <div>
+                        <div class='rc-heading-wide'>Date</div>
+                        <div class='rc-value'>
+                            <div class='btn-group' role='group'>
+                                <button id='button-date-up' type='button' class='btn btn-primary rc-button-small rc-active'><span class='glyphicon glyphicon-chevron-up' aria-hidden='true'></span></button>
+                                <button id='button-date-down' type='button' class='btn btn-primary rc-button-small'><span class='glyphicon glyphicon-chevron-down' aria-hidden='true'></span></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class='rc-heading-wide'>Cloud</div>
+                        <div class='rc-value'>
+                            <div class='btn-group' role='group'>
+                                <button id='button-cloud-up' type='button' class='btn btn-primary rc-button-small'><span class='glyphicon glyphicon-chevron-up' aria-hidden='true'></span></button>
+                                <button id='button-cloud-down' type='button' class='btn btn-primary rc-button-small'><span class='glyphicon glyphicon-chevron-down' aria-hidden='true'></span></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class='rc-heading-wide'>Sun Azimuth</div>
+                        <div class='rc-value'>
+                            <div class='btn-group' role='group'>
+                                <button id='button-sunaz-up' type='button' class='btn btn-primary rc-button-small'><span class='glyphicon glyphicon-chevron-up' aria-hidden='true'></span></button>
+                                <button id='button-sunaz-down' type='button' class='btn btn-primary rc-button-small'><span class='glyphicon glyphicon-chevron-down' aria-hidden='true'></span></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class='rc-heading-wide'>Sun Altitude</div>
+                        <div class='rc-value'>
+                            <div class='btn-group' role='group'>
+                                <button id='button-sunalt-up' type='button' class='btn btn-primary rc-button-small'><span class='glyphicon glyphicon-chevron-up' aria-hidden='true'></span> </button>
+                                <button id='button-sunalt-down' type='button' class='btn btn-primary rc-button-small'><span class='glyphicon glyphicon-chevron-down' aria-hidden='true'></span></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class='rc-heading-wide'>Swipe</div>
+                        <div class='rc-value'>
+                            <input id='slider-swipe' type='text' />
+                        </div>
+                    </div>
                 </div>
                 <div class='rc-page' data-value='4'>
-  
+                    <p>Below is a list of selected imagery in order of date picked.</p>
+                    <div id='media-list'>
+                        <div class='media'>
+                            <div class='media-left'>
+                                <a target='_blank' href='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
+                                    <img class='media-object' height='64' alt='' src='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
+                                </a>
+                            </div>
+                            <div class='media-body'>
+                                <h4 class='media-heading'>Friday, 3 August 2010</h4>
+                                <p>Landsat 8, 7% cloud coverage.</p>
+                            </div>
+                        </div>
+                        <div class='media'>
+                            <div class='media-left'>
+                                <a target='_blank' href='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
+                                    <img class='media-object' height='64' alt='' src='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
+                                </a>
+                            </div>
+                            <div class='media-body'>
+                                <h4 class='media-heading'>Friday, 4 August 2010</h4>
+                                <p>Landsat 8, 7% cloud coverage.</p>
+                            </div>
+                        </div>
+                        <div class='media'>
+                            <div class='media-left'>
+                                <a target='_blank' href='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
+                                    <img class='media-object' height='64' alt='' src='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
+                                </a>
+                            </div>
+                            <div class='media-body'>
+                                <h4 class='media-heading'>Friday, 3 August 2010</h4>
+                                <p>Landsat 8, 7% cloud coverage.</p>
+                            </div>
+                        </div>
+                        <div class='media'>
+                            <div class='media-left'>
+                                <a target='_blank' href='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
+                                    <img class='media-object' height='64' alt='' src='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
+                                </a>
+                            </div>
+                            <div class='media-body'>
+                                <h4 class='media-heading'>Friday, 4 August 2010</h4>
+                                <p>Landsat 8, 7% cloud coverage.</p>
+                            </div>
+                        </div>
+                        <div class='media'>
+                            <div class='media-left'>
+                                <a target='_blank' href='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
+                                    <img class='media-object' height='64' alt='' src='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
+                                </a>
+                            </div>
+                            <div class='media-body'>
+                                <h4 class='media-heading'>Friday, 3 August 2010</h4>
+                                <p>Landsat 8, 7% cloud coverage.</p>
+                            </div>
+                        </div>
+                        <div class='media'>
+                            <div class='media-left'>
+                                <a target='_blank' href='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
+                                    <img class='media-object' height='64' alt='' src='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
+                                </a>
+                            </div>
+                            <div class='media-body'>
+                                <h4 class='media-heading'>Friday, 4 August 2010</h4>
+                                <p>Landsat 8, 7% cloud coverage.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
                 </div>
             </div>
             <div id='footer'>
-                <div class="btn-group" role="group">
-                    <button id='button-previous' type="button" class="btn btn-primary">Previous</button>
-                    <button id='button-next' type="button" class="btn btn-primary">Next</button>
+                <div class='btn-group' role='group'>
+                    <button id='button-previous' type='button' class='btn btn-primary rc-button'><span class='glyphicon glyphicon-chevron-left' aria-hidden='true'></span> Previous</button>
+                    <button id='button-next' type='button' class='btn btn-primary rc-button'>Next <span class='glyphicon glyphicon-chevron-right' aria-hidden='true'></span></button>
                 </div>
             </div>
         </div>
     </div>
 </body>
-
 </html>

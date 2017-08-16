@@ -13,13 +13,16 @@
     limitations under the License.
 */
 
-html, body {
+/* padding: top, right, bottom, and left */
+
+html,
+body {
     overflow: hidden;
     margin: 0;
     padding: 0;
     height: 100%;
     width: 100%;
-    font-family: 'Avenir Next W00','Helvetica Neue',Helvetica,Arial,sans-serif;
+    font-family: 'Avenir Next W00', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
     box-sizing: border-box;
@@ -69,28 +72,32 @@ html, body {
 
 #content {
     position: absolute;
-    top: 50px;
-    left: 0px;
-    right: 0px;
-    bottom: 0px;
-}
-
-#toolbar {
-    position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    height: 50px;
-    padding: 10px 10px 0 10px; /* top, right, bottom, and left */
+    bottom: 0;
 }
 
-#footer{
+#footer {
     position: absolute;
     left: 0;
     right: 0;
     bottom: 0;
     height: 50px;
-    padding: 0 10px 5px 10px;
+}
+
+#button-previous{
+    display: none;
+    position: absolute;
+    left: 50px;
+    top: 0;
+}
+
+#button-next{
+    display: none;
+    position: absolute;
+    left: 150px;
+    top: 0;
 }
 
 #pages {
@@ -104,31 +111,89 @@ html, body {
     padding: 10px 10px 10px 10px;
 }
 
+#media-list{
+    position: absolute;
+    top: 60px;
+    left: 10px;
+    right: 0;
+    bottom: 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+#download-progress{
+    margin-top: 25px;
+}
+
+#download-progress p{
+    text-align: center;
+}
+
+/*
+#download-progress .progress-bar{
+    width: 40%;
+}
+*/
+
+#button-cancel-download{
+    display: none;
+}
+
 .rc-page {
     display: none;
 }
 
-.rc-heading{
+.rc-heading {
     display: inline-block;
     font-weight: 700;
-    font-size:16px;
+    font-size: 16px;
     width: 85px;
+    vertical-align: top;
+    margin-top: 5px;
 }
 
-.rc-value{
+.rc-heading-wide {
     display: inline-block;
+    font-weight: 700;
+    font-size: 16px;
+    width: 100px;
+    vertical-align: top;
+    margin-top: 5px;
+}
+
+.rc-value {
+    display: inline-block;
+}
+
+.rc-button {
+    width: 100px;
+    border-radius: 0;
+}
+
+.rc-button-small{
+    width: 40px;
+    border-radius: 0;
+}
+
+.rc-button-small.rc-active{
+    background-color: orange;
+    border-color: orange;
 }
 
 .slider.slider-horizontal {
     margin-left: 10px;
     width: 160px;
+    margin-top: 10px;
+}
+
+.slider.slider-vertical {
+    margin-top: 20px;
 }
 
 .slider-tick {
-/*    opacity: 1;*/
+    opacity: 1;
 }
 
-
-
-
-
+.rc-media-list{
+    
+}

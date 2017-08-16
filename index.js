@@ -26,6 +26,7 @@ require([
         'esri/tasks/QueryTask',
         'esri/tasks/support/Query',
         'esri/widgets/Home',
+        'esri/widgets/Search',
         'dojo/string',
         'dojo/request',
         'dojo/domReady!'
@@ -44,6 +45,7 @@ require([
         QueryTask,
         Query,
         Home,
+        Search,
         string,
         request
     ) {
@@ -53,13 +55,13 @@ require([
         $(document).ready(function () {
             // Constants
             var THREE = window.THREE;
-            var RADIUS = 6378137;
+            //var RADIUS = 6378137;
             var SIZE = 256;
             var SPACING = 10000;
-            
+
             //
             var _page = 1;
-            
+
             //
             var IMAGERY = [{
                 name: 'USGS',
@@ -69,7 +71,7 @@ require([
                 sensor: 'sensor',
                 cloud: 'cloudCover',
                 sun: 'sunElevation'
-            },{
+            }, {
                 name: 'ESRI',
                 url: 'https://landsat2.arcgis.com/arcgis/rest/services/Landsat/PS/ImageServer',
                 function: 'Pansharpened Natural Color',
@@ -85,9 +87,6 @@ require([
                 start: null,
                 graphic: null
             };
-            
-            // Entry point to the three.js rendering framework
-            //var _landsat = null;
 
             // Define map
             var _view = new SceneView({
@@ -137,6 +136,12 @@ require([
             _view.ui.add(new Home({
                 view: _view
             }), 'top-left');
+            _view.ui.add(new Search({
+                view: _view
+            }), {
+                position: "top-left",
+                index: 0
+            });
 
             // Perform display setup once the map is located.
             _view.then(function () {
@@ -151,11 +156,13 @@ require([
                     _landsat
                 );
             });
-            
+
             // Handle drag operations.
             _view.on('drag', function (e) {
                 // Exit if draw not enabled.
-                if (!_drag.enabled) { return; }
+                if (!_drag.enabled) {
+                    return;
+                }
 
                 // Prevents panning with the mouse drag event.
                 e.stopPropagation();
@@ -193,7 +200,9 @@ require([
                         });
 
                         // 
-                        if (!update) {return;}
+                        if (!update) {
+                            return;
+                        }
 
                         var extent = new Extent({
                             xmin: Math.min(_drag.start.x, update.x),
@@ -205,10 +214,10 @@ require([
 
                         var symbol = null;
 
-                        if (_drag.graphic){
+                        if (_drag.graphic) {
                             _view.graphics.remove(_drag.graphic);
                             symbol = _drag.graphic.symbol.clone();
-                        } else{
+                        } else {
                             symbol = new SimpleFillSymbol({
                                 color: [0, 0, 0, 0.25],
                                 style: 'none',
@@ -231,60 +240,176 @@ require([
                         // Disable dragging.
                         _drag.enabled = false;
                         _drag.start = null;
-
-//                        // Switch to the filter pane.
-//                        domClass.remove("area", "active");
-//                        domClass.add("filter", "active");
-                                    // Download imagery
-                        _landsat.download(
-                            IMAGERY[1],
-                            _drag.graphic.geometry
-                        );
+                        
+                        // Update page ui.
+                        pageUpdates();
 
                         break;
                 }
             });
-            
-            
-            
+
             // Update page visiblity.
-            updatePages();
-            function updatePages(){
-                $('.rc-page').hide();
-                $('.rc-page[data-value=' + _page + ']').show();
-            }
-            
+            pageUpdates();            
+
             // Button clicks.
-            $('#button-previous').click(function(){
-                if (_page == 1){return;}
+            $('#button-previous').click(function () {
+                // Invalid page
+                if (_page === 1) { return; }
+                
+                // Peform actions and update page.
                 _page--;
-                updatePages();
+                pageUpdates();
             });
-            $('#button-next').click(function(){
-                if (_page == 4){return;}
+            $('#button-next').click(function () {
+                // Invalid page
+                if (_page === 4) { return; }
+                
+                // Peform actions and update page.
                 _page++;
-                updatePages();
+                pageUpdates();
             });
-            $('#button-draw').click(function(){
+            $('#button-draw').click(function () {
                 _drag.enabled = true;
             });
-            
-            // Sliders
-            $('#slider-date').slider({
-                id: 'slider-date-internal',
-                min: 1975,
-                max: 2020,
-                ticks: [1960, 1980, 2000, 2020],
-                ticks_labels: ['1960', '1980', '2000', '2020'],
-                range: true,
-                value: [2014, 2020]
-            }).slider().on('slideStop', function () {
-
+            $('#button-start-download').click(function () {
+                // Commence download
+                _landsat.download(
+                    IMAGERY[1],
+                    _drag.graphic.geometry,
+                    function(e){
+                        // Progress event.
+                        $('#download-progress > p').html(function(){
+                            // Update progress text.
+                            return string.substitute('Processing ${i} in ${l}', {
+                                i: e.index,
+                                l: e.length
+                            });
+                            
+                            
+                        });
+                        
+                        // Update progress bar.
+                        $('#download-progress .progress-bar').width(function(){
+                            var ss = 100 * e.index / e.length;
+                            var tt = ss.toFixed();
+                            return tt + '%';
+                        });
+                    },
+                    function(){
+                        // Completed event.
+                        pageUpdates();
+                    }
+                );
+                
+                // Update UI.
+                pageUpdates();
             });
+            $('#button-cancel-download').click(function () {
+                _landsat.cancelDownload();
+                pageUpdates();
+            });
+            
+            function pageUpdates(){
+                // Show current page.
+                $('.rc-page').hide();
+                $('.rc-page[data-value=' + _page + ']').show();
+                
+                // Per page 
+                switch (_page) {
+                    case 1:
+                        // Update navigation buttons.
+                        $('#button-previous').hide();
+                        
+                        _drag.graphic ? 
+                            $('#button-next').show() :
+                            $('#button-next').hide();
+                        
+                        break;
+                    case 2:
+                        // Update navigation buttons.
+                        $('#button-previous').show();
+                        $('#button-next').show();
+                        
+                        //
+                        if (_landsat.isDownloading()){
+                            $('#button-start-download').hide();
+                            $('#button-cancel-download').show();
+                            $('#download-progress').show();
+                        } else {
+                            $('#button-start-download').show();      
+                            $('#button-cancel-download').hide();
+                            $('#download-progress').hide();
+                        }
+                        
+                        // Sliders
+                        if (!$("#slider-date-internal").length) {
+                            $('#slider-date').slider({
+                                id: 'slider-date-internal',
+                                min: 1975,
+                                max: 2020,
+                                step: 1,
+                                ticks: [1960, 1980, 2000, 2020],
+                                ticks_labels: ['1960', '1980', '2000', '2020'],
+                                range: true,
+                                value: [2014, 2020]
+                            });
+                        }
+                        if (!$("#slider-cloud-internal").length) {
+                            $('#slider-cloud').slider({
+                                id: 'slider-cloud-internal',
+                                min: 0,
+                                max: 40,
+                                step: 1,
+                                ticks: [0, 10, 20, 30, 40],
+                                ticks_labels: ['0%', '10%', '20%', '30%', '40%'],
+                                range: false,
+                                value: 10
+                            });
+                        }
+                        if (!$("#slider-resolution-internal").length) {
+                            $('#slider-resolution').slider({
+                                id: 'slider-resolution-internal',
+                                min: 1,
+                                max: 4,
+                                step: 1,
+                                ticks: [1, 2, 3, 4],
+                                ticks_labels: ['128', '256', '512', '1024'],
+                                range: false,
+                                tooltip: 'hide',
+                                value: 2
+                            });
+                        }
+                        break;
+                    case 3:
+                        // Order/Filter page.
+                        if (!$("#slider-swipe-internal").length) {
+                            $('#slider-swipe').slider({
+                                id: 'slider-swipe-internal',
+                                min: 0,
+                                max: 100,
+                                step: 1,
+                                ticks: [0, 100],
+                                ticks_labels: ['All', 'None'],
+                                range: true,
+                                tooltip: 'hide',
+                                orientation: "vertical",
+                                value: [0, 100]
+                            });
+                        }
+                        break;
+                    case 4:
+                        // Order/Purchase/Download page.
+                        break;
+                }
+            }
 
             // Definition of external renderer.
             var _landsat = {
                 setup: function (context) {
+                    //
+                    this._cancelDownload = true;
+                    this._isDownloading = false;
+                    
                     // Store view
                     this.view = context.view;
 
@@ -374,12 +499,23 @@ require([
                     context.resetWebGLState();
                 },
                 _updateObjects: function (context) {
-                    
+
                 },
-                download: function (setting, extent) {
+                cancelDownload: function(){
+                    this._cancelDownload = true;
+                },
+                isDownloading: function(){
+                    return this._isDownloading;
+                },
+                download: function (setting, extent, progress, completed) {
                     // Get a new references to view
                     var view = this.view;
                     var scene = this.scene;
+                    
+                    // Initialized user cancellation flag.
+                    this._cancelDownload = false;
+                    this._isDownloading = true;
+                    var that = this;
 
                     // Instanciate image layer
                     var layer = new ImageryLayer({
@@ -398,10 +534,10 @@ require([
                             geometry: extent,
                             returnGeometry: true,
                             outFields: [
-                            setting.date,
-                            setting.sensor,
-                            setting.cloud
-                        ],
+                                setting.date,
+                                setting.sensor,
+                                setting.cloud
+                            ],
                             outSpatialReference: view.spatialReference,
                             where: 'CloudCover <= 0.1'
                         });
@@ -422,6 +558,10 @@ require([
                                 animate: true,
                                 duration: 2000
                             });
+                            
+                            // The number of images processed.
+                            var index = 0;
+                            var length = e.features.length;
 
                             e.features.forEach(function (f) {
                                 // Footprint extent
@@ -448,15 +588,26 @@ require([
                                 url += '&mosaicRule=' + string.substitute('{mosaicMethod:"esriMosaicLockRaster",lockRasterIds:[${id}]}', {
                                     id: id
                                 });
-                                url += '&renderingRule=' + string.substitute('{rasterFunction:\'${fxn}\'}', {
-                                    fxn: setting.function
-                                });
+                                if (setting.function){
+                                    url += '&renderingRule=' + string.substitute('{rasterFunction:\'${fxn}\'}', {
+                                        fxn: setting.function
+                                    });
+                                }
 
                                 var loader = new THREE.TextureLoader();
                                 loader.setCrossOrigin('');
                                 loader.load(
                                     url,
                                     function (texture) {
+                                        // Exit if user cancelled image loading.
+                                        if (that._cancelDownload){
+                                            that._isDownloading = false;
+                                            if (completed){
+                                                completed();
+                                            }
+                                            return; 
+                                        }
+                                        
                                         // Center coordinate array
                                         var coordinates = [
                                             extent.center.x,
@@ -495,6 +646,25 @@ require([
 
                                         // Add to scene
                                         scene.add(plane);
+                                        
+                                        // Increment progressed counter.
+                                        index++;
+                                        
+                                        // Fire progress event.
+                                        if (progress){
+                                            progress({
+                                                index: index,
+                                                length: length
+                                            });
+                                        }
+                                        
+                                        // Fire completed event.
+                                        if (index === length){
+                                            that._isDownloading = false;
+                                            if (completed){
+                                                completed();
+                                            }
+                                        }
                                     }
                                 );
                             });
