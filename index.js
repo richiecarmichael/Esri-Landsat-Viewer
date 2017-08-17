@@ -57,7 +57,7 @@ require([
             var THREE = window.THREE;
             //var RADIUS = 6378137;
             var SIZE = 256;
-            var SPACING = 10000;
+            //var SPACING = 10000;
 
             //
             var _page = 1;
@@ -405,6 +405,8 @@ require([
 
             // Definition of external renderer.
             var _landsat = {
+                HEIGHT_MIN: 10000,
+                HEIGHT_MAX: 1000000,
                 setup: function (context) {
                     //
                     this._cancelDownload = true;
@@ -522,10 +524,10 @@ require([
                         url: setting.url
                     });
 
-                    var h = 0;
+                    //var h = 0;
 
                     // Load layer. Required to get objectid field.
-                    layer.load().then(function (e) {
+                    layer.load().then(function () {
                         // Get objectid field
                         var oidField = layer.objectIdField;
 
@@ -547,10 +549,18 @@ require([
                             url: setting.url
                         });
                         queryTask.execute(query).then(function (e) {
+                            // Get min/max
+                            var values = e.features.map(function(f){
+                                return f.attributes[setting.date];
+                            });
+                            var min = Math.min.apply(null, values);
+                            var max = Math.max.apply(null, values);
+                            
+                            // Zoom to full extent
                             view.goTo({
                                 target: extent.clone().set({
                                     zmin: 0,
-                                    zmax: e.features.length * SPACING * 1.5
+                                    zmax: that.HEIGHT_MAX * 1.5 // e.features.length * SPACING * 1.5
                                 }),
                                 heading: 0,
                                 tilt: 25
@@ -608,11 +618,16 @@ require([
                                             return; 
                                         }
                                         
+                                        // Calculate height
+                                        //var h = // *************************
+                                        var v = f.attributes[setting.date];
+                                        var h = that.HEIGHT_MIN + (that.HEIGHT_MAX - that.HEIGHT_MIN) * (v - min) / (max - min);
+                                        
                                         // Center coordinate array
                                         var coordinates = [
                                             extent.center.x,
                                             extent.center.y,
-                                            ++h * SPACING
+                                            h
                                         ];
 
                                         // Transform to internal rendering space
