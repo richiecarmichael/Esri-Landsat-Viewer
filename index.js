@@ -57,7 +57,6 @@ require([
             var THREE = window.THREE;
             //var RADIUS = 6378137;
             var SIZE = 256;
-            //var SPACING = 10000;
 
             //
             var _page = 1;
@@ -284,8 +283,6 @@ require([
                                 i: e.index,
                                 l: e.length
                             });
-                            
-                            
                         });
                         
                         // Update progress bar.
@@ -405,9 +402,15 @@ require([
 
             // Definition of external renderer.
             var _landsat = {
+                //
                 HEIGHT_MIN: 10000,
                 HEIGHT_MAX: 1000000,
+                
+                //
                 setup: function (context) {
+                    //
+                    this.clock = new THREE.Clock();
+                    this.mixer = null;
                     //
                     this._cancelDownload = true;
                     this._isDownloading = false;
@@ -457,7 +460,7 @@ require([
                         this.ambientLight
                     );
 
-                    // cleanup after ourselfs
+                    // cleanup after ourselves
                     //context.resetWebGLState();
                 },
                 render: function (context) {
@@ -501,7 +504,9 @@ require([
                     context.resetWebGLState();
                 },
                 _updateObjects: function (context) {
-
+                    if (this.mixer){
+                        this.mixer.update(this.clock.getDelta());
+                    }
                 },
                 cancelDownload: function(){
                     this._cancelDownload = true;
@@ -541,7 +546,8 @@ require([
                                 setting.cloud
                             ],
                             outSpatialReference: view.spatialReference,
-                            where: 'CloudCover <= 0.1'
+                            where: 'CloudCover <= 0.1',
+                            num: 1
                         });
 
                         // Query task
@@ -560,7 +566,7 @@ require([
                             view.goTo({
                                 target: extent.clone().set({
                                     zmin: 0,
-                                    zmax: that.HEIGHT_MAX * 1.5 // e.features.length * SPACING * 1.5
+                                    zmax: that.HEIGHT_MAX * 2
                                 }),
                                 heading: 0,
                                 tilt: 25
@@ -627,7 +633,7 @@ require([
                                         var coordinates = [
                                             extent.center.x,
                                             extent.center.y,
-                                            h
+                                            0
                                         ];
 
                                         // Transform to internal rendering space
@@ -662,6 +668,34 @@ require([
                                         // Add to scene
                                         scene.add(plane);
                                         
+                                        //
+                                        var positionKF = new THREE.VectorKeyframeTrack(
+                                            '.position',
+                                            [0, 1],
+                                            [
+                                                plane.position.x,
+                                                plane.position.y,
+                                                plane.position.z,
+                                                1.25 * plane.position.x,
+                                                1.25 * plane.position.y,
+                                                1.25 * plane.position.z
+                                            ],
+                                            THREE.InterpolateSmooth
+                                        );
+                                        positionKF.createInterpolant();
+                                        
+                                        var clip = new THREE.AnimationClip('Action', 3, [
+                                            positionKF
+                                        ]);
+                                        
+                                        that.mixer = new THREE.AnimationMixer(plane);
+                                        
+                                        var action = that.mixer.clipAction(clip);
+                                        action.setLoop(THREE.LoopOnce);
+                                        action.startAt(0);  // delay in seconds
+                                        action.clampWhenFinished = true;
+                                        action.play();
+
                                         // Increment progressed counter.
                                         index++;
                                         
