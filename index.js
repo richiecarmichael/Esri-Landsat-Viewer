@@ -61,25 +61,6 @@ require([
             //
             var _page = 1;
 
-            //
-            var IMAGERY = [{
-                name: 'USGS',
-                url: 'https://landsatlook.usgs.gov/arcgis/rest/services/LandsatLook/ImageServer',
-                function: null,
-                date: 'acquisitionDate',
-                sensor: 'sensor',
-                cloud: 'cloudCover',
-                sun: 'sunElevation'
-            }, {
-                name: 'ESRI',
-                url: 'https://landsat2.arcgis.com/arcgis/rest/services/Landsat/PS/ImageServer',
-                function: 'Pansharpened Natural Color',
-                date: 'AcquisitionDate',
-                sensor: 'SensorName',
-                cloud: 'CloudCover',
-                sun: 'SunElevation'
-            }];
-
             // Drag object
             var _drag = {
                 enabled: false,
@@ -129,31 +110,27 @@ require([
                     },
                     starsEnabled: true
                 }
+            })
+            
+            // Load satellite layer
+            _view.then(function () {
+                ExternalRenderers.add(
+                    _view,
+                    _landsat
+                );
             });
 
-            // Add home
+            // Add home button.
             _view.ui.add(new Home({
                 view: _view
             }), 'top-left');
+            
+            // Add search button.
             _view.ui.add(new Search({
                 view: _view
             }), {
                 position: "top-left",
                 index: 0
-            });
-
-            // Perform display setup once the map is located.
-            _view.then(function () {
-                // Continue to refresh the display even if stationary.
-                _view._stage.setRenderParams({
-                    idleSuspend: false
-                });
-
-                // Load satellite layer
-                ExternalRenderers.add(
-                    _view,
-                    _landsat
-                );
             });
 
             // Handle drag operations.
@@ -273,7 +250,7 @@ require([
             $('#button-start-download').click(function () {
                 // Commence download
                 _landsat.download(
-                    IMAGERY[1],
+                    _landsat.ESRI,
                     _drag.graphic.geometry,
                     function(e){
                         // Progress event.
@@ -328,7 +305,7 @@ require([
                         $('#button-next').show();
                         
                         //
-                        if (_landsat.isDownloading()){
+                        if (_landsat.isDownloading){
                             $('#button-start-download').hide();
                             $('#button-cancel-download').show();
                             $('#download-progress').show();
@@ -403,18 +380,42 @@ require([
             // Definition of external renderer.
             var _landsat = {
                 //
-                HEIGHT_MIN: 10000,
-                HEIGHT_MAX: 1000000,
+                USGS: {
+                    name: 'USGS',
+                    url: 'https://landsatlook.usgs.gov/arcgis/rest/services/LandsatLook/ImageServer',
+                    function: null,
+                    date: 'acquisitionDate',
+                    sensor: 'sensor',
+                    cloud: 'cloudCover',
+                    sunAlt: 'sunElevation',
+                    sunAz: 'sunAzimuth'
+                },
+                ESRI: {
+                    name: 'ESRI',
+                    url: 'https://landsat2.arcgis.com/arcgis/rest/services/Landsat/PS/ImageServer',
+                    function: 'Pansharpened Natural Color',
+                    date: 'AcquisitionDate',
+                    sensor: 'SensorName',
+                    cloud: 'CloudCover',
+                    sunAlt: 'SunElevation',
+                    sunAz: 'SunAzimuth'
+                },
+                //
+                OFFSET: 10000,
+                HEIGHT: 1000000,
+                
+                //
+                ASCENDING: 0,
+                DESENDING: 1,
+                
+                //
+                _cancelDownload: true,
+                isDownloading: false,
+                sortField: 'date',
+                sortDirection: this.DESENDING,
                 
                 //
                 setup: function (context) {
-                    //
-                    this.clock = new THREE.Clock();
-                    this.mixer = null;
-                    //
-                    this._cancelDownload = true;
-                    this._isDownloading = false;
-                    
                     // Store view
                     this.view = context.view;
 
@@ -450,6 +451,7 @@ require([
 
                     // Instanciate scene and camera
                     this.scene = new THREE.Scene();
+                    this.images = new THREE.Group();
                     this.camera = new THREE.PerspectiveCamera();
 
                     // Create both a directional light, as well as an ambient light
@@ -457,9 +459,14 @@ require([
                     this.ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
                     this.scene.add(
                         this.directionalLight,
-                        this.ambientLight
+                        this.ambientLight,
+                        this.images
                     );
-
+                    
+                    // Animation environment
+                    this.mixer = new THREE.AnimationMixer(this.scene);
+                    this.clock = new THREE.Clock(true);
+                    
                     // cleanup after ourselves
                     //context.resetWebGLState();
                 },
@@ -498,12 +505,13 @@ require([
                     this.renderer.render(this.scene, this.camera);
 
                     // as we want to smoothly animate the ISS movement, immediately request a re-render
-                    //externalRenderers.requestRender(view);
+                    ExternalRenderers.requestRender(this.view);
 
                     // cleanup
                     context.resetWebGLState();
                 },
                 _updateObjects: function (context) {
+                    //
                     if (this.mixer){
                         this.mixer.update(this.clock.getDelta());
                     }
@@ -511,25 +519,60 @@ require([
                 cancelDownload: function(){
                     this._cancelDownload = true;
                 },
-                isDownloading: function(){
-                    return this._isDownloading;
+                sort: function(field, order){
+//                    // Get min/max
+//                    var values = this.scene.e.features.map(function(f){
+//                        return f.attributes[setting.date];
+//                    });
+//                    var min = Math.min.apply(null, values);
+//                    var max = Math.max.apply(null, values);
+//                    
+//                    // Calculate height
+//                    var v = f.attributes[setting.date];
+//                    var factor = (v - min) / (max - min);
+//                    var h = factor * that.HEIGHT + that.OFFSET;
+//                                        var normal = plane.position.clone().normalize();
+//                    var height = plane.position.clone();
+//                    height.addScaledVector(normal, h);
+//
+//                    var action = that.mixer.clipAction(
+//                        new THREE.AnimationClip('Action2', 1, [
+//                            new THREE.VectorKeyframeTrack(
+//                                '.position',
+//                                [0, 1],
+//                                [
+//                                    plane.position.x,
+//                                    plane.position.y,
+//                                    plane.position.z,
+//                                    height.x,
+//                                    height.y,
+//                                    height.z
+//                                ]
+//                            )
+//                        ]),
+//                        plane
+//                    );
+//                    action.setDuration(1);
+//                    action.setLoop(THREE.LoopOnce);
+//                    action.startAt(that.mixer.time);
+//                    action.clampWhenFinished = true;
+//                    action.play();
+                    
                 },
                 download: function (setting, extent, progress, completed) {
                     // Get a new references to view
                     var view = this.view;
-                    var scene = this.scene;
+                    //var scene = this.scene;
                     
                     // Initialized user cancellation flag.
                     this._cancelDownload = false;
-                    this._isDownloading = true;
+                    this.isDownloading = true;
                     var that = this;
 
                     // Instanciate image layer
                     var layer = new ImageryLayer({
                         url: setting.url
                     });
-
-                    //var h = 0;
 
                     // Load layer. Required to get objectid field.
                     layer.load().then(function () {
@@ -543,11 +586,15 @@ require([
                             outFields: [
                                 setting.date,
                                 setting.sensor,
-                                setting.cloud
+                                setting.cloud,
+                                setting.sunAlt,
+                                setting.sunAz
+                            ],
+                            orderByFields: [
+                                setting.date + ' DESC'
                             ],
                             outSpatialReference: view.spatialReference,
-                            where: 'CloudCover <= 0.1',
-                            num: 1
+                            where: 'CloudCover <= 0.1'
                         });
 
                         // Query task
@@ -566,7 +613,7 @@ require([
                             view.goTo({
                                 target: extent.clone().set({
                                     zmin: 0,
-                                    zmax: that.HEIGHT_MAX * 2
+                                    zmax: that.HEIGHT * 2
                                 }),
                                 heading: 0,
                                 tilt: 25
@@ -617,7 +664,7 @@ require([
                                     function (texture) {
                                         // Exit if user cancelled image loading.
                                         if (that._cancelDownload){
-                                            that._isDownloading = false;
+                                            that.isDownloading = false;
                                             if (completed){
                                                 completed();
                                             }
@@ -625,9 +672,9 @@ require([
                                         }
                                         
                                         // Calculate height
-                                        //var h = // *************************
                                         var v = f.attributes[setting.date];
-                                        var h = that.HEIGHT_MIN + (that.HEIGHT_MAX - that.HEIGHT_MIN) * (v - min) / (max - min);
+                                        var factor = (v - min) / (max - min);
+                                        var h = factor * that.HEIGHT + that.OFFSET;
                                         
                                         // Center coordinate array
                                         var coordinates = [
@@ -658,44 +705,61 @@ require([
                                         var material = new THREE.MeshBasicMaterial({
                                             map: texture,
                                             side: THREE.DoubleSide,
-                                            transparent: true
+                                            transparent: true,
+                                            opacity: 1
                                         });
 
                                         var plane = new THREE.Mesh(geometry, material);
                                         plane.position.fromArray(coordinates);
                                         plane.applyMatrix(matrix);
+                                        plane.userData = {
+                                            attributes:{
+                                                date:   f.attributes[setting.date],
+                                                sensor: f.attributes[setting.sensor],
+                                                cloud:  f.attributes[setting.cloud],
+                                                sunAlt: f.attributes[setting.sunAlt],
+                                                sunAz:  f.attributes[setting.sunAz]
+                                            },
+                                            origin: plane.position.clone()
+                                        };
 
                                         // Add to scene
-                                        scene.add(plane);
-                                        
+                                        //scene.add(plane);
+                                        that.images.add(plane);
+                                                                    
                                         //
-                                        var positionKF = new THREE.VectorKeyframeTrack(
-                                            '.position',
-                                            [0, 1],
-                                            [
-                                                plane.position.x,
-                                                plane.position.y,
-                                                plane.position.z,
-                                                1.25 * plane.position.x,
-                                                1.25 * plane.position.y,
-                                                1.25 * plane.position.z
-                                            ],
-                                            THREE.InterpolateSmooth
+                                        var normal = plane.position.clone().normalize();
+                                        var height = plane.position.clone();
+                                        height.addScaledVector(normal, h);
+                                        
+                                        var action = that.mixer.clipAction(
+                                            new THREE.AnimationClip('Action2', 1, [
+                                                new THREE.VectorKeyframeTrack(
+                                                    '.position',
+                                                    [0, 1],
+                                                    [
+                                                        plane.position.x,
+                                                        plane.position.y,
+                                                        plane.position.z,
+                                                        height.x,
+                                                        height.y,
+                                                        height.z
+                                                    ]
+                                                ),
+                                                new THREE.NumberKeyframeTrack(
+                                                    '.material[opacity]',
+                                                    [0, 0.5, 1],
+                                                    [0, 0, 1]
+                                                )
+                                            ]),
+                                            plane
                                         );
-                                        positionKF.createInterpolant();
-                                        
-                                        var clip = new THREE.AnimationClip('Action', 3, [
-                                            positionKF
-                                        ]);
-                                        
-                                        that.mixer = new THREE.AnimationMixer(plane);
-                                        
-                                        var action = that.mixer.clipAction(clip);
+                                        action.setDuration(1);
                                         action.setLoop(THREE.LoopOnce);
-                                        action.startAt(0);  // delay in seconds
+                                        action.startAt(that.mixer.time);
                                         action.clampWhenFinished = true;
                                         action.play();
-
+                                        
                                         // Increment progressed counter.
                                         index++;
                                         
@@ -709,7 +773,7 @@ require([
                                         
                                         // Fire completed event.
                                         if (index === length){
-                                            that._isDownloading = false;
+                                            that.isDownloading = false;
                                             if (completed){
                                                 completed();
                                             }
