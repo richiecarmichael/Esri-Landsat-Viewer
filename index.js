@@ -55,10 +55,9 @@ require([
         $(document).ready(function () {
             // Constants
             var THREE = window.THREE;
-            //var RADIUS = 6378137;
             var SIZE = 256;
 
-            //
+            // Current UI page.
             var _page = 1;
 
             // Drag object
@@ -282,6 +281,20 @@ require([
                 _landsat.cancelDownload();
                 pageUpdates();
             });
+            $('.rc-sort-button').click(function(){
+                // Exit if already checked.
+                if($(this).hasClass('rc-active')){return;}
+                
+                $('.rc-sort-button').removeClass('rc-active');
+                $(this).addClass('rc-active');
+                
+                // Get new field and older.
+                var field = $(this).attr('data-field');
+                var order = $(this).attr('data-order');
+                
+                // Reorder landsat images.
+                _landsat.sort(field, order);
+            });
             
             function pageUpdates(){
                 // Show current page.
@@ -363,7 +376,7 @@ require([
                                 max: 100,
                                 step: 1,
                                 ticks: [0, 100],
-                                ticks_labels: ['All', 'None'],
+                                ticks_labels: ['Top', 'Bottom'],
                                 range: true,
                                 tooltip: 'hide',
                                 orientation: "vertical",
@@ -379,40 +392,43 @@ require([
 
             // Definition of external renderer.
             var _landsat = {
-                //
+                // Preset landsat services.
                 USGS: {
-                    name: 'USGS',
-                    url: 'https://landsatlook.usgs.gov/arcgis/rest/services/LandsatLook/ImageServer',
+                    name:     'USGS',
+                    url:      'https://landsatlook.usgs.gov/arcgis/rest/services/LandsatLook/ImageServer',
                     function: null,
-                    date: 'acquisitionDate',
-                    sensor: 'sensor',
-                    cloud: 'cloudCover',
-                    sunAlt: 'sunElevation',
-                    sunAz: 'sunAzimuth'
+                    date:     'acquisitionDate',
+                    sensor:   'sensor',
+                    cloud:    'cloudCover',
+                    sunAlt:   'sunElevation',
+                    sunAz:    'sunAzimuth'
                 },
                 ESRI: {
-                    name: 'ESRI',
-                    url: 'https://landsat2.arcgis.com/arcgis/rest/services/Landsat/PS/ImageServer',
+                    name:     'ESRI',
+                    url:      'https://landsat2.arcgis.com/arcgis/rest/services/Landsat/PS/ImageServer',
                     function: 'Pansharpened Natural Color',
-                    date: 'AcquisitionDate',
-                    sensor: 'SensorName',
-                    cloud: 'CloudCover',
-                    sunAlt: 'SunElevation',
-                    sunAz: 'SunAzimuth'
+                    date:     'AcquisitionDate',
+                    sensor:   'SensorName',
+                    cloud:    'CloudCover',
+                    sunAlt:   'SunElevation',
+                    sunAz:    'SunAzimuth'
                 },
-                //
+                
+                // Height limits and offset off the ground.
                 OFFSET: 10000,
                 HEIGHT: 1000000,
                 
-                //
-                ASCENDING: 0,
-                DESENDING: 1,
-                
-                //
+                // Downloading state and cancel flag.
                 _cancelDownload: true,
                 isDownloading: false,
-                sortField: 'date',
-                sortDirection: this.DESENDING,
+                
+                // Curent sorting properties
+                _setting: null,
+                _sortField: null,
+                _sortOrder: 'descending', // or 'ascending'/'descending'
+                
+                // 
+                _bounds: {},
                 
                 //
                 setup: function (context) {
@@ -511,64 +527,69 @@ require([
                     context.resetWebGLState();
                 },
                 _updateObjects: function (context) {
-                    //
+                    // Update the animation object.
                     if (this.mixer){
                         this.mixer.update(this.clock.getDelta());
                     }
                 },
                 cancelDownload: function(){
+                    // If user clicked the Cancel button then enable cancellation flag.
                     this._cancelDownload = true;
                 },
                 sort: function(field, order){
-//                    // Get min/max
-//                    var values = this.scene.e.features.map(function(f){
-//                        return f.attributes[setting.date];
-//                    });
-//                    var min = Math.min.apply(null, values);
-//                    var max = Math.max.apply(null, values);
-//                    
-//                    // Calculate height
-//                    var v = f.attributes[setting.date];
-//                    var factor = (v - min) / (max - min);
-//                    var h = factor * that.HEIGHT + that.OFFSET;
-//                                        var normal = plane.position.clone().normalize();
-//                    var height = plane.position.clone();
-//                    height.addScaledVector(normal, h);
-//
-//                    var action = that.mixer.clipAction(
-//                        new THREE.AnimationClip('Action2', 1, [
-//                            new THREE.VectorKeyframeTrack(
-//                                '.position',
-//                                [0, 1],
-//                                [
-//                                    plane.position.x,
-//                                    plane.position.y,
-//                                    plane.position.z,
-//                                    height.x,
-//                                    height.y,
-//                                    height.z
-//                                ]
-//                            )
-//                        ]),
-//                        plane
-//                    );
-//                    action.setDuration(1);
-//                    action.setLoop(THREE.LoopOnce);
-//                    action.startAt(that.mixer.time);
-//                    action.clampWhenFinished = true;
-//                    action.play();
+                    //
+                    this._sortField = this._setting[field];
+                    this._sortOrder = order;
                     
+                    //
+                    this.mixer.stopAllAction();
+                    var that = this;
+                    
+                    //
+                    this.images.children.forEach(function (plane){
+                        // Remove previous actions associated with this root.
+                        that.mixer.uncacheRoot(plane);
+                        
+                        // Just in case the plane is semi-transparent.
+                        plane.material.opacity = 1;
+                        
+                        //
+                        var action = that.mixer.clipAction(
+                            new THREE.AnimationClip('action', 1, [
+                                new THREE.VectorKeyframeTrack(
+                                    '.position',
+                                    [0, 1],
+                                    [
+                                        plane.position.x,
+                                        plane.position.y,
+                                        plane.position.z,
+                                        plane.userData.positions[that._sortField][that._sortOrder].x,
+                                        plane.userData.positions[that._sortField][that._sortOrder].y,
+                                        plane.userData.positions[that._sortField][that._sortOrder].z
+                                    ],
+                                    THREE.InterpolateSmooth
+                                )
+                            ]),
+                            plane
+                        );
+                        action.setDuration(1);
+                        action.setLoop(THREE.LoopOnce);
+                        action.startAt(that.mixer.time + Math.random() * 0.5);
+                        action.clampWhenFinished = true;
+                        action.play();
+                    });
                 },
                 download: function (setting, extent, progress, completed) {
                     // Get a new references to view
                     var view = this.view;
-                    //var scene = this.scene;
                     
                     // Initialized user cancellation flag.
-                    this._cancelDownload = false;
                     this.isDownloading = true;
+                    this._cancelDownload = false;
+                    this._setting = setting;
+                    this._sortField = setting.date;
                     var that = this;
-
+                    
                     // Instanciate image layer
                     var layer = new ImageryLayer({
                         url: setting.url
@@ -591,7 +612,7 @@ require([
                                 setting.sunAz
                             ],
                             orderByFields: [
-                                setting.date + ' DESC'
+                                setting.date + ' ASC'
                             ],
                             outSpatialReference: view.spatialReference,
                             where: 'CloudCover <= 0.1'
@@ -602,13 +623,6 @@ require([
                             url: setting.url
                         });
                         queryTask.execute(query).then(function (e) {
-                            // Get min/max
-                            var values = e.features.map(function(f){
-                                return f.attributes[setting.date];
-                            });
-                            var min = Math.min.apply(null, values);
-                            var max = Math.max.apply(null, values);
-                            
                             // Zoom to full extent
                             view.goTo({
                                 target: extent.clone().set({
@@ -622,10 +636,26 @@ require([
                                 duration: 2000
                             });
                             
-                            // The number of images processed.
-                            var index = 0;
-                            var length = e.features.length;
-
+                            // Sortable fields.
+                            var fields = [
+                                setting.date,
+                                setting.cloud,
+                                setting.sunAlt,
+                                setting.sunAz
+                            ];
+                            
+                            // Get min/max for all variables
+                            fields.forEach(function(field){
+                                var values = e.features.map(function(f){
+                                    return f.attributes[field];
+                                });
+                                that._bounds[field] = {
+                                    min: Math.min.apply(null, values),
+                                    max: Math.max.apply(null, values)
+                                };
+                            }); 
+                            
+                            // 
                             e.features.forEach(function (f) {
                                 // Footprint extent
                                 var extent = f.geometry.extent;
@@ -671,11 +701,6 @@ require([
                                             return; 
                                         }
                                         
-                                        // Calculate height
-                                        var v = f.attributes[setting.date];
-                                        var factor = (v - min) / (max - min);
-                                        var h = factor * that.HEIGHT + that.OFFSET;
-                                        
                                         // Center coordinate array
                                         var coordinates = [
                                             extent.center.x,
@@ -693,7 +718,7 @@ require([
                                         var matrix = new THREE.Matrix4();
                                         matrix.fromArray(transform);
 
-                                        // Create three.js object
+                                        // Create plane geometry.
                                         var geometry = new THREE.PlaneBufferGeometry(
                                             extent.width,
                                             extent.height,
@@ -701,55 +726,77 @@ require([
                                             1
                                         );
 
-                                        // Do something with the texture
+                                        // Create textured material.
                                         var material = new THREE.MeshBasicMaterial({
                                             map: texture,
                                             side: THREE.DoubleSide,
                                             transparent: true,
-                                            opacity: 1
+                                            opacity: 0
                                         });
 
+                                        // Create a plane mesh from the geometry and material.
                                         var plane = new THREE.Mesh(geometry, material);
                                         plane.position.fromArray(coordinates);
                                         plane.applyMatrix(matrix);
-                                        plane.userData = {
-                                            attributes:{
-                                                date:   f.attributes[setting.date],
-                                                sensor: f.attributes[setting.sensor],
-                                                cloud:  f.attributes[setting.cloud],
-                                                sunAlt: f.attributes[setting.sunAlt],
-                                                sunAz:  f.attributes[setting.sunAz]
-                                            },
-                                            origin: plane.position.clone()
+                                        plane.userData.attributes = {
+                                            date:   f.attributes[setting.date],
+                                            sensor: f.attributes[setting.sensor],
+                                            cloud:  f.attributes[setting.cloud],
+                                            sunAlt: f.attributes[setting.sunAlt],
+                                            sunAz:  f.attributes[setting.sunAz]
                                         };
+                                        
+                                        // Pre-calculate all heights.
+                                        var positions = {};
+                                        var normal = plane.position.clone().normalize();
+                                        fields.forEach(function(field){
+                                            var val = f.attributes[field];
+                                            var min = that._bounds[field].min;
+                                            var max = that._bounds[field].max;
+                                            var fac = (val - min) / (max - min);
+                                            var asc = (1 - fac) * that.HEIGHT + that.OFFSET;
+                                            var dsc = fac * that.HEIGHT + that.OFFSET;
+                                            
+                                            var ascending = plane.position.clone();
+                                            var descending = plane.position.clone();
+                                            ascending.addScaledVector(normal, asc);
+                                            descending.addScaledVector(normal, dsc);
+                                            
+                                            positions[field] = {
+                                                ascending: ascending,
+                                                descending: descending
+                                            };
+                                        });
+                                        plane.userData.positions = positions;
 
                                         // Add to scene
-                                        //scene.add(plane);
                                         that.images.add(plane);
-                                                                    
-                                        //
-                                        var normal = plane.position.clone().normalize();
-                                        var height = plane.position.clone();
-                                        height.addScaledVector(normal, h);
                                         
+                                        //
+                                        var end = plane.userData.positions[that._sortField][that._sortOrder];
+                                        var start = end.clone();
+                                        start.addScaledVector(normal, -that.HEIGHT/5);
+                                        
+                                        //
                                         var action = that.mixer.clipAction(
-                                            new THREE.AnimationClip('Action2', 1, [
+                                            new THREE.AnimationClip('action', 1, [
                                                 new THREE.VectorKeyframeTrack(
                                                     '.position',
                                                     [0, 1],
                                                     [
-                                                        plane.position.x,
-                                                        plane.position.y,
-                                                        plane.position.z,
-                                                        height.x,
-                                                        height.y,
-                                                        height.z
-                                                    ]
+                                                        start.x,
+                                                        start.y,
+                                                        start.z,
+                                                        end.x,
+                                                        end.y,
+                                                        end.z
+                                                    ],
+                                                    THREE.InterpolateSmooth
                                                 ),
                                                 new THREE.NumberKeyframeTrack(
                                                     '.material[opacity]',
-                                                    [0, 0.5, 1],
-                                                    [0, 0, 1]
+                                                    [0, 1],
+                                                    [0, 1]
                                                 )
                                             ]),
                                             plane
@@ -761,18 +808,19 @@ require([
                                         action.play();
                                         
                                         // Increment progressed counter.
-                                        index++;
+                                        var processed = that.images.children.length;
+                                        var total = e.features.length
                                         
                                         // Fire progress event.
                                         if (progress){
                                             progress({
-                                                index: index,
-                                                length: length
+                                                index: processed,
+                                                length: total
                                             });
                                         }
                                         
                                         // Fire completed event.
-                                        if (index === length){
+                                        if (processed === total){
                                             that.isDownloading = false;
                                             if (completed){
                                                 completed();

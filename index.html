@@ -18,7 +18,7 @@
     <script src='js/jquery-3.2.1.min.js'></script>
     <script src='js/bootstrap.min.js'></script>
     <script src='js/bootstrap-slider.min.js'></script>
-    <script src='js/three.js'></script>
+    <script src='js/three.min.js'></script>
     <script src='//js.arcgis.com/4.4/'></script>
     <script src='index.js'></script>
 
@@ -121,8 +121,8 @@
                         <div class='rc-heading-wide'>Date</div>
                         <div class='rc-value'>
                             <div class='btn-group' role='group'>
-                                <button id='button-date-up' type='button' class='btn btn-primary rc-button-small'><span class='glyphicon glyphicon-chevron-up' aria-hidden='true'></span></button>
-                                <button id='button-date-dn' type='button' class='btn btn-primary rc-button-small rc-active'><span class='glyphicon glyphicon-chevron-down' aria-hidden='true'></span></button>
+                                <button data-field='date' data-order='ascending' type='button' class='btn btn-primary rc-button-small rc-sort-button'><span class='glyphicon glyphicon-chevron-up' aria-hidden='true'></span></button>
+                                <button data-field='date' data-order='descending' type='button' class='btn btn-primary rc-button-small rc-sort-button rc-active'><span class='glyphicon glyphicon-chevron-down' aria-hidden='true'></span></button>
                             </div>
                         </div>
                     </div>
@@ -130,8 +130,8 @@
                         <div class='rc-heading-wide'>Cloud</div>
                         <div class='rc-value'>
                             <div class='btn-group' role='group'>
-                                <button id='button-cloud-up' type='button' class='btn btn-primary rc-button-small'><span class='glyphicon glyphicon-chevron-up' aria-hidden='true'></span></button>
-                                <button id='button-cloud-dn' type='button' class='btn btn-primary rc-button-small'><span class='glyphicon glyphicon-chevron-down' aria-hidden='true'></span></button>
+                                <button data-field='cloud' data-order='ascending' type='button' class='btn btn-primary rc-button-small rc-sort-button'><span class='glyphicon glyphicon-chevron-up' aria-hidden='true'></span></button>
+                                <button data-field='cloud' data-order='descending' type='button' class='btn btn-primary rc-button-small rc-sort-button'><span class='glyphicon glyphicon-chevron-down' aria-hidden='true'></span></button>
                             </div>
                         </div>
                     </div>
@@ -139,8 +139,8 @@
                         <div class='rc-heading-wide'>Sun Azimuth</div>
                         <div class='rc-value'>
                             <div class='btn-group' role='group'>
-                                <button id='button-sunaz-up' type='button' class='btn btn-primary rc-button-small'><span class='glyphicon glyphicon-chevron-up' aria-hidden='true'></span></button>
-                                <button id='button-sunaz-dn' type='button' class='btn btn-primary rc-button-small'><span class='glyphicon glyphicon-chevron-down' aria-hidden='true'></span></button>
+                                <button data-field='sunAz' data-order='ascending' type='button' class='btn btn-primary rc-button-small rc-sort-button'><span class='glyphicon glyphicon-chevron-up' aria-hidden='true'></span></button>
+                                <button data-field='sunAz' data-order='descending' type='button' class='btn btn-primary rc-button-small rc-sort-button'><span class='glyphicon glyphicon-chevron-down' aria-hidden='true'></span></button>
                             </div>
                         </div>
                     </div>
@@ -148,8 +148,8 @@
                         <div class='rc-heading-wide'>Sun Altitude</div>
                         <div class='rc-value'>
                             <div class='btn-group' role='group'>
-                                <button id='button-sunalt-up' type='button' class='btn btn-primary rc-button-small rc-sort'><span class='glyphicon glyphicon-chevron-up' aria-hidden='true'></span> </button>
-                                <button id='button-sunalt-dn' type='button' class='btn btn-primary rc-button-small'><span class='glyphicon glyphicon-chevron-down' aria-hidden='true'></span></button>
+                                <button data-field='sunAlt' data-order='ascending' type='button' class='btn btn-primary rc-button-small rc-sort-button'><span class='glyphicon glyphicon-chevron-up' aria-hidden='true'></span> </button>
+                                <button data-field='sunAlt' data-order='descending' type='button' class='btn btn-primary rc-button-small rc-sort-button'><span class='glyphicon glyphicon-chevron-down' aria-hidden='true'></span></button>
                             </div>
                         </div>
                     </div>
