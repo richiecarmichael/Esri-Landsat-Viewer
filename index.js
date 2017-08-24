@@ -296,7 +296,6 @@ require([
                 _landsat.sort(field, order);
             });
             
-            
             function pageUpdates(){
                 // Show current page.
                 $('.rc-page').hide();
@@ -374,21 +373,19 @@ require([
                             $('#slider-swipe').slider({
                                 id: 'slider-swipe-internal',
                                 min: 0,
-                                max: 100,
-                                step: 1,
-                                ticks: [0, 100],
-                                ticks_labels: ['Top', 'Bottom'],
+                                max: 1,
+                                step: 0.01,
+                                ticks: [0, 1],
+                                ticks_labels: ['Bottom', 'Top'],
                                 range: true,
                                 tooltip: 'hide',
-                                orientation: "vertical",
-                                value: [0, 100]
+                                orientation: 'vertical',
+                                reversed: true,
+                                value: [0, 1]
                             }).on('change', function(e){
-                                // top: 0, bottom: 100
-                                var top = e.value.newValue[0];
-                                var bot = e.value.newValue[1];
                                 _landsat.filter(
-                                    1 - (bot / 100),
-                                    1 - (top / 100)
+                                    e.value.newValue[0],
+                                    e.value.newValue[1]
                                 );
                             });
                         }
@@ -424,6 +421,7 @@ require([
                 },
                 
                 // Height limits and offset off the ground.
+                RADIUS: 6378137,
                 OFFSET: 10000,
                 HEIGHT: 1000000,
                 
@@ -433,11 +431,8 @@ require([
                 
                 // Curent sorting properties
                 _setting: null,
-                _sortField: null,
+                _sortField: 'date', //null,
                 _sortOrder: 'descending', // or 'ascending'/'descending'
-                
-                // Object to the min/max values for each field.
-                _bounds: {},
                 
                 //
                 setup: function (context) {
@@ -546,25 +541,20 @@ require([
                     this._cancelDownload = true;
                 },
                 filter: function(bottom, top){
-                    var min = this._bounds[this._sortField].min;
-                    var max = this._bounds[this._sortField].max;
-                    var minv = bottom * (max - min) + min;
-                    var maxv = top * (max - min) + min;
-                    
-                    var that = this;
-                    
+                    var min = bottom * this.HEIGHT + this.OFFSET + this.RADIUS;
+                    var max = top * this.HEIGHT + this.OFFSET + this.RADIUS;
                     this.images.children.forEach(function(plane){
-                        var value = plane.userData.attributes[that._sortField];
-                        var visible = value >= minv && value <= maxv;
+                        var length = plane.position.length();
+                        var visible = length >= min && length <= max;
                         if (plane.visible !== visible){
                             plane.visible = visible;
                         }
-                        
                     });
+                    
                 },
                 sort: function(field, order){
                     //
-                    this._sortField = this._setting[field];
+                    this._sortField = field;
                     this._sortOrder = order;
                     
                     //
@@ -589,9 +579,9 @@ require([
                                         plane.position.x,
                                         plane.position.y,
                                         plane.position.z,
-                                        plane.userData.positions[that._sortField][that._sortOrder].x,
-                                        plane.userData.positions[that._sortField][that._sortOrder].y,
-                                        plane.userData.positions[that._sortField][that._sortOrder].z
+                                        plane.userData.positions[field][order].x,
+                                        plane.userData.positions[field][order].y,
+                                        plane.userData.positions[field][order].z
                                     ],
                                     THREE.InterpolateSmooth
                                 )
@@ -613,7 +603,6 @@ require([
                     this.isDownloading = true;
                     this._cancelDownload = false;
                     this._setting = setting;
-                    this._sortField = setting.date;
                     var that = this;
                     
                     // Instanciate image layer
@@ -664,18 +653,19 @@ require([
                             
                             // Sortable fields.
                             var fields = [
-                                setting.date,
-                                setting.cloud,
-                                setting.sunAlt,
-                                setting.sunAz
+                                'date',
+                                'cloud',
+                                'sunAlt',
+                                'sunAz'
                             ];
                             
                             // Get min/max for all variables
+                            var bounds = {};
                             fields.forEach(function(field){
                                 var values = e.features.map(function(f){
-                                    return f.attributes[field];
+                                    return f.attributes[setting[field]];
                                 });
-                                that._bounds[field] = {
+                                bounds[field] = {
                                     min: Math.min.apply(null, values),
                                     max: Math.max.apply(null, values)
                                 };
@@ -764,27 +754,22 @@ require([
                                         var plane = new THREE.Mesh(geometry, material);
                                         plane.position.fromArray(coordinates);
                                         plane.applyMatrix(matrix);
-//                                        plane.userData.attributes = {
-//                                            date:   f.attributes[setting.date],
-//                                            sensor: f.attributes[setting.sensor],
-//                                            cloud:  f.attributes[setting.cloud],
-//                                            sunAlt: f.attributes[setting.sunAlt],
-//                                            sunAz:  f.attributes[setting.sunAz]
-//                                        };
-                                        plane.userData.attributes = {};
-                                        plane.userData.attributes[setting.date] = f.attributes[setting.date];
-                                        plane.userData.attributes[setting.sensor] = f.attributes[setting.sensor];
-                                        plane.userData.attributes[setting.cloud] = f.attributes[setting.cloud];
-                                        plane.userData.attributes[setting.sunAlt] = f.attributes[setting.sunAlt];
-                                        plane.userData.attributes[setting.sunAz] = f.attributes[setting.sunAz];
+                                        plane.userData.attributes = {
+                                            date:   f.attributes[setting.date],
+                                            sensor: f.attributes[setting.sensor],
+                                            cloud:  f.attributes[setting.cloud],
+                                            sunAlt: f.attributes[setting.sunAlt],
+                                            sunAz:  f.attributes[setting.sunAz]
+                                        };
                                         
                                         // Pre-calculate all heights.
+                                        
                                         var positions = {};
                                         var normal = plane.position.clone().normalize();
                                         fields.forEach(function(field){
-                                            var val = f.attributes[field];
-                                            var min = that._bounds[field].min;
-                                            var max = that._bounds[field].max;
+                                            var val = f.attributes[setting[field]];
+                                            var min = bounds[field].min;
+                                            var max = bounds[field].max;
                                             var fac = (val - min) / (max - min);
                                             var asc = (1 - fac) * that.HEIGHT + that.OFFSET;
                                             var dsc = fac * that.HEIGHT + that.OFFSET;
