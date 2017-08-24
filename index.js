@@ -296,6 +296,7 @@ require([
                 _landsat.sort(field, order);
             });
             
+            
             function pageUpdates(){
                 // Show current page.
                 $('.rc-page').hide();
@@ -381,6 +382,14 @@ require([
                                 tooltip: 'hide',
                                 orientation: "vertical",
                                 value: [0, 100]
+                            }).on('change', function(e){
+                                // top: 0, bottom: 100
+                                var top = e.value.newValue[0];
+                                var bot = e.value.newValue[1];
+                                _landsat.filter(
+                                    1 - (bot / 100),
+                                    1 - (top / 100)
+                                );
                             });
                         }
                         break;
@@ -427,7 +436,7 @@ require([
                 _sortField: null,
                 _sortOrder: 'descending', // or 'ascending'/'descending'
                 
-                // 
+                // Object to the min/max values for each field.
                 _bounds: {},
                 
                 //
@@ -535,6 +544,23 @@ require([
                 cancelDownload: function(){
                     // If user clicked the Cancel button then enable cancellation flag.
                     this._cancelDownload = true;
+                },
+                filter: function(bottom, top){
+                    var min = this._bounds[this._sortField].min;
+                    var max = this._bounds[this._sortField].max;
+                    var minv = bottom * (max - min) + min;
+                    var maxv = top * (max - min) + min;
+                    
+                    var that = this;
+                    
+                    this.images.children.forEach(function(plane){
+                        var value = plane.userData.attributes[that._sortField];
+                        var visible = value >= minv && value <= maxv;
+                        if (plane.visible !== visible){
+                            plane.visible = visible;
+                        }
+                        
+                    });
                 },
                 sort: function(field, order){
                     //
@@ -655,7 +681,7 @@ require([
                                 };
                             }); 
                             
-                            // 
+                            // Download and animate a preview image for every footprint.
                             e.features.forEach(function (f) {
                                 // Footprint extent
                                 var extent = f.geometry.extent;
@@ -738,13 +764,19 @@ require([
                                         var plane = new THREE.Mesh(geometry, material);
                                         plane.position.fromArray(coordinates);
                                         plane.applyMatrix(matrix);
-                                        plane.userData.attributes = {
-                                            date:   f.attributes[setting.date],
-                                            sensor: f.attributes[setting.sensor],
-                                            cloud:  f.attributes[setting.cloud],
-                                            sunAlt: f.attributes[setting.sunAlt],
-                                            sunAz:  f.attributes[setting.sunAz]
-                                        };
+//                                        plane.userData.attributes = {
+//                                            date:   f.attributes[setting.date],
+//                                            sensor: f.attributes[setting.sensor],
+//                                            cloud:  f.attributes[setting.cloud],
+//                                            sunAlt: f.attributes[setting.sunAlt],
+//                                            sunAz:  f.attributes[setting.sunAz]
+//                                        };
+                                        plane.userData.attributes = {};
+                                        plane.userData.attributes[setting.date] = f.attributes[setting.date];
+                                        plane.userData.attributes[setting.sensor] = f.attributes[setting.sensor];
+                                        plane.userData.attributes[setting.cloud] = f.attributes[setting.cloud];
+                                        plane.userData.attributes[setting.sunAlt] = f.attributes[setting.sunAlt];
+                                        plane.userData.attributes[setting.sunAz] = f.attributes[setting.sunAz];
                                         
                                         // Pre-calculate all heights.
                                         var positions = {};
@@ -772,12 +804,12 @@ require([
                                         // Add to scene
                                         that.images.add(plane);
                                         
-                                        //
+                                        // For the first animation 
                                         var end = plane.userData.positions[that._sortField][that._sortOrder];
                                         var start = end.clone();
                                         start.addScaledVector(normal, -that.HEIGHT/5);
                                         
-                                        //
+                                        // Create an animation action to move preview image into place.
                                         var action = that.mixer.clipAction(
                                             new THREE.AnimationClip('action', 1, [
                                                 new THREE.VectorKeyframeTrack(
