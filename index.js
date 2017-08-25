@@ -109,8 +109,8 @@ require([
                     },
                     starsEnabled: true
                 }
-            })
-            
+            });
+
             // Load satellite layer
             _view.then(function () {
                 ExternalRenderers.add(
@@ -123,7 +123,7 @@ require([
             _view.ui.add(new Home({
                 view: _view
             }), 'top-left');
-            
+
             // Add search button.
             _view.ui.add(new Search({
                 view: _view
@@ -215,7 +215,7 @@ require([
                         // Disable dragging.
                         _drag.enabled = false;
                         _drag.start = null;
-                        
+
                         // Update page ui.
                         pageUpdates();
 
@@ -224,21 +224,25 @@ require([
             });
 
             // Update page visiblity.
-            pageUpdates();            
+            pageUpdates();
 
             // Button clicks.
             $('#button-previous').click(function () {
                 // Invalid page
-                if (_page === 1) { return; }
-                
+                if (_page === 1) {
+                    return;
+                }
+
                 // Peform actions and update page.
                 _page--;
                 pageUpdates();
             });
             $('#button-next').click(function () {
                 // Invalid page
-                if (_page === 4) { return; }
-                
+                if (_page === 4) {
+                    return;
+                }
+
                 // Peform actions and update page.
                 _page++;
                 pageUpdates();
@@ -251,29 +255,29 @@ require([
                 _landsat.download(
                     _landsat.ESRI,
                     _drag.graphic.geometry,
-                    function(e){
+                    function (e) {
                         // Progress event.
-                        $('#download-progress > p').html(function(){
+                        $('#download-progress > p').html(function () {
                             // Update progress text.
                             return string.substitute('Processing ${i} in ${l}', {
                                 i: e.index,
                                 l: e.length
                             });
                         });
-                        
+
                         // Update progress bar.
-                        $('#download-progress .progress-bar').width(function(){
+                        $('#download-progress .progress-bar').width(function () {
                             var ss = 100 * e.index / e.length;
                             var tt = ss.toFixed();
                             return tt + '%';
                         });
                     },
-                    function(){
+                    function () {
                         // Completed event.
                         pageUpdates();
                     }
                 );
-                
+
                 // Update UI.
                 pageUpdates();
             });
@@ -281,53 +285,55 @@ require([
                 _landsat.cancelDownload();
                 pageUpdates();
             });
-            $('.rc-sort-button').click(function(){
+            $('.rc-sort-button').click(function () {
                 // Exit if already checked.
-                if($(this).hasClass('rc-active')){return;}
-                
+                if ($(this).hasClass('rc-active')) {
+                    return;
+                }
+
                 $('.rc-sort-button').removeClass('rc-active');
                 $(this).addClass('rc-active');
-                
+
                 // Get new field and older.
                 var field = $(this).attr('data-field');
                 var order = $(this).attr('data-order');
-                
+
                 // Reorder landsat images.
                 _landsat.sort(field, order);
             });
-            
-            function pageUpdates(){
+
+            function pageUpdates() {
                 // Show current page.
                 $('.rc-page').hide();
                 $('.rc-page[data-value=' + _page + ']').show();
-                
+
                 // Per page 
                 switch (_page) {
                     case 1:
                         // Update navigation buttons.
                         $('#button-previous').hide();
-                        
-                        _drag.graphic ? 
+
+                        _drag.graphic ?
                             $('#button-next').show() :
                             $('#button-next').hide();
-                        
+
                         break;
                     case 2:
                         // Update navigation buttons.
                         $('#button-previous').show();
                         $('#button-next').show();
-                        
+
                         //
-                        if (_landsat.isDownloading){
+                        if (_landsat.isDownloading) {
                             $('#button-start-download').hide();
                             $('#button-cancel-download').show();
                             $('#download-progress').show();
                         } else {
-                            $('#button-start-download').show();      
+                            $('#button-start-download').show();
                             $('#button-cancel-download').hide();
                             $('#download-progress').hide();
                         }
-                        
+
                         // Sliders
                         if (!$("#slider-date-internal").length) {
                             $('#slider-date').slider({
@@ -382,7 +388,7 @@ require([
                                 orientation: 'vertical',
                                 reversed: true,
                                 value: [0, 1]
-                            }).on('change', function(e){
+                            }).on('change', function (e) {
                                 _landsat.filter(
                                     e.value.newValue[0],
                                     e.value.newValue[1]
@@ -400,41 +406,44 @@ require([
             var _landsat = {
                 // Preset landsat services.
                 USGS: {
-                    name:     'USGS',
-                    url:      'https://landsatlook.usgs.gov/arcgis/rest/services/LandsatLook/ImageServer',
+                    name: 'USGS',
+                    url: 'https://landsatlook.usgs.gov/arcgis/rest/services/LandsatLook/ImageServer',
                     function: null,
-                    date:     'acquisitionDate',
-                    sensor:   'sensor',
-                    cloud:    'cloudCover',
-                    sunAlt:   'sunElevation',
-                    sunAz:    'sunAzimuth'
+                    date: 'acquisitionDate',
+                    sensor: 'sensor',
+                    cloud: 'cloudCover',
+                    sunAlt: 'sunElevation',
+                    sunAz: 'sunAzimuth'
                 },
                 ESRI: {
-                    name:     'ESRI',
-                    url:      'https://landsat2.arcgis.com/arcgis/rest/services/Landsat/PS/ImageServer',
+                    name: 'ESRI',
+                    url: 'https://landsat2.arcgis.com/arcgis/rest/services/Landsat/PS/ImageServer',
                     function: 'Pansharpened Natural Color',
-                    date:     'AcquisitionDate',
-                    sensor:   'SensorName',
-                    cloud:    'CloudCover',
-                    sunAlt:   'SunElevation',
-                    sunAz:    'SunAzimuth'
+                    date: 'AcquisitionDate',
+                    sensor: 'SensorName',
+                    cloud: 'CloudCover',
+                    sunAlt: 'SunElevation',
+                    sunAz: 'SunAzimuth'
                 },
-                
+
                 // Height limits and offset off the ground.
                 RADIUS: 6378137,
                 OFFSET: 10000,
                 HEIGHT: 1000000,
-                
+
                 // Downloading state and cancel flag.
                 _cancelDownload: true,
                 isDownloading: false,
-                
+
                 // Curent sorting properties
                 _setting: null,
-                _sortField: 'date', //null,
+                _sortField: 'date',
                 _sortOrder: 'descending', // or 'ascending'/'descending'
-                
-                //
+
+                // The image current under the mouse.
+                _intersected: null,
+
+                // Webgl setup.
                 setup: function (context) {
                     // Store view
                     this.view = context.view;
@@ -445,7 +454,7 @@ require([
                         premultipliedAlpha: false
                     });
 
-                    //
+                    // Define renderer size and ratio.
                     this.renderer.setPixelRatio(window.devicePixelRatio);
                     this.renderer.setSize(
                         this.view.size[0],
@@ -453,7 +462,6 @@ require([
                     );
 
                     // Make sure it does not clear anything before rendering
-                    //this.renderer.autoClear = false;
                     this.renderer.autoClearDepth = false;
                     this.renderer.autoClearColor = false;
                     this.renderer.autoClearStencil = false;
@@ -469,26 +477,49 @@ require([
                         }
                     };
 
-                    // Instanciate scene and camera
+                    // Instanciate scene and camera.
                     this.scene = new THREE.Scene();
                     this.images = new THREE.Group();
+                    this.box = new THREE.Group();
                     this.camera = new THREE.PerspectiveCamera();
 
-                    // Create both a directional light, as well as an ambient light
+                    // Create both a directional light, as well as an ambient light.
                     this.directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
                     this.ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
                     this.scene.add(
                         this.directionalLight,
                         this.ambientLight,
-                        this.images
+                        this.images,
+                        this.box
                     );
-                    
+
+                    // Initialize the raycaster used for highlighting images.
+                    this.raycaster = new THREE.Raycaster();
+
                     // Animation environment
                     this.mixer = new THREE.AnimationMixer(this.scene);
                     this.clock = new THREE.Clock(true);
-                    
+
                     // cleanup after ourselves
-                    //context.resetWebGLState();
+                    context.resetWebGLState();
+
+                    // Update renderer size and ratio on window resize.
+                    window.addEventListener('resize', function () {
+                        this.camera.aspect = window.innerWidth / window.innerHeight;
+                        this.camera.updateProjectionMatrix();
+                        this.renderer.setSize(
+                            window.innerWidth,
+                            window.innerHeight
+                        );
+                    }.bind(this), false);
+
+                    // Perform raycasting on mouse move.
+                    this.mouse = new THREE.Vector2();
+                    document.addEventListener('mousemove', function (e) {
+                        e.preventDefault();
+                        this.mouse.x = (e.offsetX / e.target.width) * 2 - 1;
+                        this.mouse.y = -(e.offsetY / e.target.height) * 2 + 1;
+                    }.bind(this), false);
                 },
                 render: function (context) {
                     // Get Esri's camera
@@ -518,7 +549,71 @@ require([
                     this.ambientLight.intensity = ambient.intensity;
 
                     // Update objects
-                    this._updateObjects(context);
+                    if (this.mixer) {
+                        this.mixer.update(this.clock.getDelta());
+                    }
+            
+                    // Highlight images under mouse.
+                    this.raycaster.setFromCamera(this.mouse, this.camera);
+                    var intersects = this.raycaster.intersectObjects(this.images.children);
+                    if (intersects.length > 0) {
+                        if (this._intersected != intersects[0].object) {
+                            // Remove highlight from previous image (if any).
+                            if (this._intersected) {
+                                this._intersected.material.emissive.setHex(this._intersected.currentHex);
+                            }
+                            
+                            // Highlight image.
+                            this._intersected = intersects[0].object;
+                            this._intersected.currentHex = this._intersected.material.emissive.getHex();
+                            this._intersected.material.emissive.setHex(0x00ffff);
+                            
+                            // Draw box to Earth.
+                            var v = this._intersected.position;
+                            var p = this._intersected.geometry.getAttribute('position');
+                            
+                            //
+                            var s = [];
+                            for (var i = 0; i < p.count; i++ ) {
+                                var u = new THREE.Vector3(
+                                    p.array[p.itemSize * i + 0],
+                                    p.array[p.itemSize * i + 1],
+                                    p.array[p.itemSize * i + 2]
+                                );
+                                u.applyMatrix4(this._intersected.matrixWorld);
+                                s.push(u);
+                            }
+                            
+                            var c = this._intersected.position.clone();
+                            c.normalize();
+                            c.multiplyScalar(this.HEIGHT);
+                            
+                            var lines = s.map(function(x){
+                                var b = x.clone();
+                                x.add(c);
+                                
+                                var geometry = new THREE.Geometry();
+                                geometry.vertices.push(x, c);
+                                
+                                var material = new THREE.LineBasicMaterial({ color: 0x0000ff });
+                                
+                                return new THREE.Line(geometry, material);
+                            });
+                            lines.forEach(function(x){
+                                this.box.add(x);    
+                            }.bind(this));
+                            
+                        }
+                    } else {
+                        if (this._intersected) {
+                            // Remove highlight from image.
+                            this._intersected.material.emissive.setHex(this._intersected.currentHex);
+                            
+                            // Remove boxing graphics.
+                            this.box.children.length = 0;
+                        }
+                        this._intersected = null;
+                    }
 
                     // Render the scene
                     this.renderer.resetGLState();
@@ -530,52 +625,43 @@ require([
                     // cleanup
                     context.resetWebGLState();
                 },
-                _updateObjects: function (context) {
-                    // Update the animation object.
-                    if (this.mixer){
-                        this.mixer.update(this.clock.getDelta());
-                    }
-                },
-                cancelDownload: function(){
+                cancelDownload: function () {
                     // If user clicked the Cancel button then enable cancellation flag.
                     this._cancelDownload = true;
                 },
-                filter: function(bottom, top){
+                filter: function (bottom, top) {
                     var min = bottom * this.HEIGHT + this.OFFSET + this.RADIUS;
                     var max = top * this.HEIGHT + this.OFFSET + this.RADIUS;
-                    this.images.children.forEach(function(plane){
+                    this.images.children.forEach(function (plane) {
                         var length = plane.position.length();
                         var visible = length >= min && length <= max;
-                        if (plane.visible !== visible){
+                        if (plane.visible !== visible) {
                             plane.visible = visible;
                         }
                     });
-                    
+
                 },
-                sort: function(field, order){
+                sort: function (field, order) {
                     //
                     this._sortField = field;
                     this._sortOrder = order;
-                    
+
                     //
                     this.mixer.stopAllAction();
-                    var that = this;
-                    
+
                     //
-                    this.images.children.forEach(function (plane){
+                    this.images.children.forEach(function (plane) {
                         // Remove previous actions associated with this root.
-                        that.mixer.uncacheRoot(plane);
-                        
+                        this.mixer.uncacheRoot(plane);
+
                         // Just in case the plane is semi-transparent.
                         plane.material.opacity = 1;
-                        
+
                         //
-                        var action = that.mixer.clipAction(
+                        var action = this.mixer.clipAction(
                             new THREE.AnimationClip('action', 1, [
                                 new THREE.VectorKeyframeTrack(
-                                    '.position',
-                                    [0, 1],
-                                    [
+                                    '.position', [0, 1], [
                                         plane.position.x,
                                         plane.position.y,
                                         plane.position.z,
@@ -590,21 +676,18 @@ require([
                         );
                         action.setDuration(1);
                         action.setLoop(THREE.LoopOnce);
-                        action.startAt(that.mixer.time + Math.random() * 0.5);
+                        action.startAt(this.mixer.time + Math.random() * 0.5);
                         action.clampWhenFinished = true;
                         action.play();
-                    });
+                    }.bind(this));
                 },
                 download: function (setting, extent, progress, completed) {
-                    // Get a new references to view
-                    var view = this.view;
-                    
                     // Initialized user cancellation flag.
                     this.isDownloading = true;
                     this._cancelDownload = false;
                     this._setting = setting;
                     var that = this;
-                    
+
                     // Instanciate image layer
                     var layer = new ImageryLayer({
                         url: setting.url
@@ -629,7 +712,7 @@ require([
                             orderByFields: [
                                 setting.date + ' ASC'
                             ],
-                            outSpatialReference: view.spatialReference,
+                            outSpatialReference: that.view.spatialReference,
                             where: 'CloudCover <= 0.1'
                         });
 
@@ -639,7 +722,7 @@ require([
                         });
                         queryTask.execute(query).then(function (e) {
                             // Zoom to full extent
-                            view.goTo({
+                            that.view.goTo({
                                 target: extent.clone().set({
                                     zmin: 0,
                                     zmax: that.HEIGHT * 2
@@ -650,7 +733,7 @@ require([
                                 animate: true,
                                 duration: 2000
                             });
-                            
+
                             // Sortable fields.
                             var fields = [
                                 'date',
@@ -658,19 +741,19 @@ require([
                                 'sunAlt',
                                 'sunAz'
                             ];
-                            
+
                             // Get min/max for all variables
                             var bounds = {};
-                            fields.forEach(function(field){
-                                var values = e.features.map(function(f){
+                            fields.forEach(function (field) {
+                                var values = e.features.map(function (f) {
                                     return f.attributes[setting[field]];
                                 });
                                 bounds[field] = {
                                     min: Math.min.apply(null, values),
                                     max: Math.max.apply(null, values)
                                 };
-                            }); 
-                            
+                            });
+
                             // Download and animate a preview image for every footprint.
                             e.features.forEach(function (f) {
                                 // Footprint extent
@@ -686,8 +769,8 @@ require([
                                     xmax: extent.xmax,
                                     ymax: extent.ymax
                                 });
-                                url += '&bboxSR=' + view.spatialReference.wkid;
-                                url += '&imageSR=' + view.spatialReference.wkid;
+                                url += '&bboxSR=' + that.view.spatialReference.wkid;
+                                url += '&imageSR=' + that.view.spatialReference.wkid;
                                 url += string.substitute('&size=${w},${h}', {
                                     w: SIZE,
                                     h: SIZE
@@ -697,7 +780,7 @@ require([
                                 url += '&mosaicRule=' + string.substitute('{mosaicMethod:"esriMosaicLockRaster",lockRasterIds:[${id}]}', {
                                     id: id
                                 });
-                                if (setting.function){
+                                if (setting.function) {
                                     url += '&renderingRule=' + string.substitute('{rasterFunction:\'${fxn}\'}', {
                                         fxn: setting.function
                                     });
@@ -709,14 +792,14 @@ require([
                                     url,
                                     function (texture) {
                                         // Exit if user cancelled image loading.
-                                        if (that._cancelDownload){
+                                        if (that._cancelDownload) {
                                             that.isDownloading = false;
-                                            if (completed){
+                                            if (completed) {
                                                 completed();
                                             }
-                                            return; 
+                                            return;
                                         }
-                                        
+
                                         // Center coordinate array
                                         var coordinates = [
                                             extent.center.x,
@@ -726,7 +809,7 @@ require([
 
                                         // Transform to internal rendering space
                                         var transform = ExternalRenderers.renderCoordinateTransformAt(
-                                            view,
+                                            that.view,
                                             coordinates,
                                             f.geometry.spatialReference,
                                             new Float64Array(16)
@@ -743,11 +826,12 @@ require([
                                         );
 
                                         // Create textured material.
-                                        var material = new THREE.MeshBasicMaterial({
+                                        var material = new THREE.MeshLambertMaterial({
                                             map: texture,
                                             side: THREE.DoubleSide,
                                             transparent: true,
-                                            opacity: 0
+                                            opacity: 0,
+                                            emissiveIntensity: 0.5
                                         });
 
                                         // Create a plane mesh from the geometry and material.
@@ -761,24 +845,23 @@ require([
                                             sunAlt: f.attributes[setting.sunAlt],
                                             sunAz:  f.attributes[setting.sunAz]
                                         };
-                                        
+
                                         // Pre-calculate all heights.
-                                        
                                         var positions = {};
                                         var normal = plane.position.clone().normalize();
-                                        fields.forEach(function(field){
+                                        fields.forEach(function (field) {
                                             var val = f.attributes[setting[field]];
                                             var min = bounds[field].min;
                                             var max = bounds[field].max;
                                             var fac = (val - min) / (max - min);
                                             var asc = (1 - fac) * that.HEIGHT + that.OFFSET;
                                             var dsc = fac * that.HEIGHT + that.OFFSET;
-                                            
+
                                             var ascending = plane.position.clone();
                                             var descending = plane.position.clone();
                                             ascending.addScaledVector(normal, asc);
                                             descending.addScaledVector(normal, dsc);
-                                            
+
                                             positions[field] = {
                                                 ascending: ascending,
                                                 descending: descending
@@ -788,19 +871,17 @@ require([
 
                                         // Add to scene
                                         that.images.add(plane);
-                                        
+
                                         // For the first animation 
                                         var end = plane.userData.positions[that._sortField][that._sortOrder];
                                         var start = end.clone();
-                                        start.addScaledVector(normal, -that.HEIGHT/5);
-                                        
+                                        start.addScaledVector(normal, -that.HEIGHT / 5);
+
                                         // Create an animation action to move preview image into place.
                                         var action = that.mixer.clipAction(
                                             new THREE.AnimationClip('action', 1, [
                                                 new THREE.VectorKeyframeTrack(
-                                                    '.position',
-                                                    [0, 1],
-                                                    [
+                                                    '.position', [0, 1], [
                                                         start.x,
                                                         start.y,
                                                         start.z,
@@ -811,9 +892,7 @@ require([
                                                     THREE.InterpolateSmooth
                                                 ),
                                                 new THREE.NumberKeyframeTrack(
-                                                    '.material[opacity]',
-                                                    [0, 1],
-                                                    [0, 1]
+                                                    '.material[opacity]', [0, 1], [0, 1]
                                                 )
                                             ]),
                                             plane
@@ -823,23 +902,23 @@ require([
                                         action.startAt(that.mixer.time);
                                         action.clampWhenFinished = true;
                                         action.play();
-                                        
+
                                         // Increment progressed counter.
                                         var processed = that.images.children.length;
-                                        var total = e.features.length
-                                        
+                                        var total = e.features.length;
+
                                         // Fire progress event.
-                                        if (progress){
+                                        if (progress) {
                                             progress({
                                                 index: processed,
                                                 length: total
                                             });
                                         }
-                                        
+
                                         // Fire completed event.
-                                        if (processed === total){
+                                        if (processed === total) {
                                             that.isDownloading = false;
-                                            if (completed){
+                                            if (completed) {
                                                 completed();
                                             }
                                         }
