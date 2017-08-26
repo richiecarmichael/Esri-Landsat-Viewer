@@ -113,10 +113,26 @@ require([
 
             // Load satellite layer
             _view.then(function () {
+                // Load external renderer
                 ExternalRenderers.add(
                     _view,
                     _landsat
                 );
+                
+                // 
+                _landsat.interaction(function(e){
+                    //
+                    $('#image-identify').animate({ 'margin-left': '0px' }, {
+                        duration: 300,
+                        easing: 'swing',
+                        queue: false
+                    });
+                    
+                    //
+                    $('#image-identify-preview').prop({
+                        src: e.image
+                    });
+                });
             });
 
             // Add home button.
@@ -301,7 +317,7 @@ require([
                 // Reorder landsat images.
                 _landsat.sort(field, order);
             });
-
+            
             function pageUpdates() {
                 // Show current page.
                 $('.rc-page').hide();
@@ -406,9 +422,10 @@ require([
             var _landsat = {
                 // Preset landsat services.
                 USGS: {
-                    name: 'USGS',
+                    host: 'USGS',
                     url: 'https://landsatlook.usgs.gov/arcgis/rest/services/LandsatLook/ImageServer',
                     function: null,
+                    name: 'Name',
                     date: 'acquisitionDate',
                     sensor: 'sensor',
                     cloud: 'cloudCover',
@@ -416,9 +433,10 @@ require([
                     sunAz: 'sunAzimuth'
                 },
                 ESRI: {
-                    name: 'ESRI',
+                    host: 'ESRI',
                     url: 'https://landsat2.arcgis.com/arcgis/rest/services/Landsat/PS/ImageServer',
                     function: 'Pansharpened Natural Color',
+                    name: 'Name',
                     date: 'AcquisitionDate',
                     sensor: 'SensorName',
                     cloud: 'CloudCover',
@@ -504,22 +522,30 @@ require([
                     context.resetWebGLState();
 
                     // Update renderer size and ratio on window resize.
-                    window.addEventListener('resize', function () {
-                        this.camera.aspect = window.innerWidth / window.innerHeight;
+                    this.view.on('resize', function(e){
+                        this.camera.aspect = e.width / e.height;
                         this.camera.updateProjectionMatrix();
-                        this.renderer.setSize(
-                            window.innerWidth,
-                            window.innerHeight
-                        );
-                    }.bind(this), false);
+                        this.renderer.setSize(e.width, e.height);
+                    }.bind(this));
 
                     // Perform raycasting on mouse move.
                     this.mouse = new THREE.Vector2();
-                    document.addEventListener('mousemove', function (e) {
-                        e.preventDefault();
-                        this.mouse.x = (e.offsetX / e.target.width) * 2 - 1;
-                        this.mouse.y = -(e.offsetY / e.target.height) * 2 + 1;
-                    }.bind(this), false);
+                    this.view.on('pointer-move', function(e){
+                        this.mouse.x = (e.x / this.view.width) * 2 - 1;
+                        this.mouse.y = -(e.y / this.view.height) * 2 + 1;
+                    }.bind(this));
+                    
+                    // Perform identify on click.
+                    this.view.on('pointer-down', function(e){
+                        this.raycaster.setFromCamera(this.mouse, this.camera);
+                        var intersects = this.raycaster.intersectObjects(this.images.children);
+                        if (intersects.length === 0){return;}
+                        var plane = intersects[0].object;
+                        this.pointerDown(plane.userData.attributes);
+                    }.bind(this));
+                },
+                interaction: function(pointerDown){
+                    this.pointerDown = pointerDown;
                 },
                 render: function (context) {
                     // Get Esri's camera
@@ -561,6 +587,9 @@ require([
                             // Remove highlight from previous image (if any).
                             if (this._intersected) {
                                 this._intersected.material.emissive.setHex(this._intersected.currentHex);
+                                
+                                // Remove boxing graphics.
+                                this.box.children.length = 0;
                             }
                             
                             // Highlight image.
@@ -571,38 +600,52 @@ require([
                             // Draw box to Earth.
                             var v = this._intersected.position;
                             var p = this._intersected.geometry.getAttribute('position');
+                            var m = this._intersected.matrixWorld;
                             
-                            //
-                            var s = [];
-                            for (var i = 0; i < p.count; i++ ) {
-                                var u = new THREE.Vector3(
-                                    p.array[p.itemSize * i + 0],
-                                    p.array[p.itemSize * i + 1],
-                                    p.array[p.itemSize * i + 2]
-                                );
-                                u.applyMatrix4(this._intersected.matrixWorld);
-                                s.push(u);
-                            }
+                            // Add box around image.
+                            /*
+                                  5____4
+                                1/___0/|
+                                | 6__|_7
+                                2/___3/
+                                0: max.x, max.y, max.z
+                                1: min.x, max.y, max.z
+                                2: min.x, min.y, max.z
+                                3: max.x, min.y, max.z
+                                4: max.x, max.y, min.z
+                                5: min.x, max.y, min.z
+                                6: min.x, min.y, min.z
+                                7: max.x, min.y, min.z
+                            */
                             
-                            var c = this._intersected.position.clone();
-                            c.normalize();
-                            c.multiplyScalar(this.HEIGHT);
+                            var min = new THREE.Vector3(p.array[6], p.array[7], this.RADIUS + this.OFFSET - v.length());
+                            var max = new THREE.Vector3(p.array[3], p.array[4], 0);
+                            var indices = new Uint16Array([0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7]);
+                            var positions = new Float32Array([
+                                [max.x], [max.y], [max.z],
+                                [min.x], [max.y], [max.z],
+                                [min.x], [min.y], [max.z],
+                                [max.x], [min.y], [max.z],
+                                [max.x], [max.y], [min.z],
+                                [min.x], [max.y], [min.z],
+                                [min.x], [min.y], [min.z],
+                                [max.x], [min.y], [min.z]
+                            ]);
+                            var geometry = new THREE.BufferGeometry();
+                            geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+                            geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
+                            var linesegment = new THREE.LineSegments(
+                                geometry,
+                                new THREE.LineBasicMaterial({
+                                    color: 0xffffff,
+                                    linewidth: 1,
+                                    opacity: 0.5,
+                                    transparent: true
+                                })
+                            );
                             
-                            var lines = s.map(function(x){
-                                var b = x.clone();
-                                x.add(c);
-                                
-                                var geometry = new THREE.Geometry();
-                                geometry.vertices.push(x, c);
-                                
-                                var material = new THREE.LineBasicMaterial({ color: 0x0000ff });
-                                
-                                return new THREE.Line(geometry, material);
-                            });
-                            lines.forEach(function(x){
-                                this.box.add(x);    
-                            }.bind(this));
-                            
+                            linesegment.applyMatrix(m);
+                            this.box.add(linesegment);
                         }
                     } else {
                         if (this._intersected) {
@@ -686,7 +729,6 @@ require([
                     this.isDownloading = true;
                     this._cancelDownload = false;
                     this._setting = setting;
-                    var that = this;
 
                     // Instanciate image layer
                     var layer = new ImageryLayer({
@@ -703,6 +745,7 @@ require([
                             geometry: extent,
                             returnGeometry: true,
                             outFields: [
+                                setting.name,
                                 setting.date,
                                 setting.sensor,
                                 setting.cloud,
@@ -712,7 +755,7 @@ require([
                             orderByFields: [
                                 setting.date + ' ASC'
                             ],
-                            outSpatialReference: that.view.spatialReference,
+                            outSpatialReference: this.view.spatialReference,
                             where: 'CloudCover <= 0.1'
                         });
 
@@ -722,10 +765,10 @@ require([
                         });
                         queryTask.execute(query).then(function (e) {
                             // Zoom to full extent
-                            that.view.goTo({
+                            this.view.goTo({
                                 target: extent.clone().set({
                                     zmin: 0,
-                                    zmax: that.HEIGHT * 2
+                                    zmax: this.HEIGHT * 2
                                 }),
                                 heading: 0,
                                 tilt: 25
@@ -769,12 +812,8 @@ require([
                                     xmax: extent.xmax,
                                     ymax: extent.ymax
                                 });
-                                url += '&bboxSR=' + that.view.spatialReference.wkid;
-                                url += '&imageSR=' + that.view.spatialReference.wkid;
-                                url += string.substitute('&size=${w},${h}', {
-                                    w: SIZE,
-                                    h: SIZE
-                                });
+                                url += '&bboxSR=' + this.view.spatialReference.wkid;
+                                url += '&imageSR=' + this.view.spatialReference.wkid;
                                 url += '&format=' + 'png';
                                 url += '&interpolation=' + 'RSP_BilinearInterpolation';
                                 url += '&mosaicRule=' + string.substitute('{mosaicMethod:"esriMosaicLockRaster",lockRasterIds:[${id}]}', {
@@ -785,15 +824,24 @@ require([
                                         fxn: setting.function
                                     });
                                 }
-
+                                var preview = url;
+                                url += string.substitute('&size=${w},${h}', {
+                                    w: SIZE,
+                                    h: SIZE
+                                });
+                                preview += string.substitute('&size=${w},${h}', {
+                                    w: 300,
+                                    h: 300
+                                });
+                                
                                 var loader = new THREE.TextureLoader();
                                 loader.setCrossOrigin('');
                                 loader.load(
                                     url,
                                     function (texture) {
                                         // Exit if user cancelled image loading.
-                                        if (that._cancelDownload) {
-                                            that.isDownloading = false;
+                                        if (this._cancelDownload) {
+                                            this.isDownloading = false;
                                             if (completed) {
                                                 completed();
                                             }
@@ -809,7 +857,7 @@ require([
 
                                         // Transform to internal rendering space
                                         var transform = ExternalRenderers.renderCoordinateTransformAt(
-                                            that.view,
+                                            this.view,
                                             coordinates,
                                             f.geometry.spatialReference,
                                             new Float64Array(16)
@@ -839,11 +887,13 @@ require([
                                         plane.position.fromArray(coordinates);
                                         plane.applyMatrix(matrix);
                                         plane.userData.attributes = {
+                                            name:   f.attributes[setting.name],
                                             date:   f.attributes[setting.date],
                                             sensor: f.attributes[setting.sensor],
                                             cloud:  f.attributes[setting.cloud],
                                             sunAlt: f.attributes[setting.sunAlt],
-                                            sunAz:  f.attributes[setting.sunAz]
+                                            sunAz:  f.attributes[setting.sunAz],
+                                            image:  preview
                                         };
 
                                         // Pre-calculate all heights.
@@ -854,8 +904,8 @@ require([
                                             var min = bounds[field].min;
                                             var max = bounds[field].max;
                                             var fac = (val - min) / (max - min);
-                                            var asc = (1 - fac) * that.HEIGHT + that.OFFSET;
-                                            var dsc = fac * that.HEIGHT + that.OFFSET;
+                                            var asc = (1 - fac) * this.HEIGHT + this.OFFSET;
+                                            var dsc = fac * this.HEIGHT + this.OFFSET;
 
                                             var ascending = plane.position.clone();
                                             var descending = plane.position.clone();
@@ -866,19 +916,19 @@ require([
                                                 ascending: ascending,
                                                 descending: descending
                                             };
-                                        });
+                                        }.bind(this));
                                         plane.userData.positions = positions;
 
                                         // Add to scene
-                                        that.images.add(plane);
+                                        this.images.add(plane);
 
                                         // For the first animation 
-                                        var end = plane.userData.positions[that._sortField][that._sortOrder];
+                                        var end = plane.userData.positions[this._sortField][this._sortOrder];
                                         var start = end.clone();
-                                        start.addScaledVector(normal, -that.HEIGHT / 5);
+                                        start.addScaledVector(normal, -this.HEIGHT / 5);
 
                                         // Create an animation action to move preview image into place.
-                                        var action = that.mixer.clipAction(
+                                        var action = this.mixer.clipAction(
                                             new THREE.AnimationClip('action', 1, [
                                                 new THREE.VectorKeyframeTrack(
                                                     '.position', [0, 1], [
@@ -899,12 +949,12 @@ require([
                                         );
                                         action.setDuration(1);
                                         action.setLoop(THREE.LoopOnce);
-                                        action.startAt(that.mixer.time);
+                                        action.startAt(this.mixer.time);
                                         action.clampWhenFinished = true;
                                         action.play();
 
                                         // Increment progressed counter.
-                                        var processed = that.images.children.length;
+                                        var processed = this.images.children.length;
                                         var total = e.features.length;
 
                                         // Fire progress event.
@@ -917,16 +967,16 @@ require([
 
                                         // Fire completed event.
                                         if (processed === total) {
-                                            that.isDownloading = false;
+                                            this.isDownloading = false;
                                             if (completed) {
                                                 completed();
                                             }
                                         }
-                                    }
+                                    }.bind(this)
                                 );
-                            });
-                        });
-                    });
+                            }.bind(this));
+                        }.bind(this));
+                    }.bind(this));
                 }
             };
         });
