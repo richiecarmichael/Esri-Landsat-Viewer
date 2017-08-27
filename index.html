@@ -5,8 +5,8 @@
     <meta http-equiv='content-type' content='text/html;charset=utf-8' />
     <meta name='viewport' content='width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no' />
     <meta name='author' content='Esri' />
-    <meta name='keywords' content='' />
-    <meta name='description' content='' />
+    <meta name='keywords' content='landsat viewer 3d exploration temporal webgl sample' />
+    <meta name='description' content='Developer sample showing how to filter and select Landsat scenes.' />
     <meta name='robots' content='index,follow' />
 
     <link rel='shortcut icon' type='image/ico' href='img/favicon.ico'>
@@ -22,18 +22,21 @@
     <script src='//js.arcgis.com/4.4/'></script>
     <script src='index.js'></script>
 
-    <!--
     <script>
-        (function (i, s, o, g, r, a, m) {
-            i['GoogleAnalyticsObject'] = r; i[r] = i[r] || function () {
+        (function(i, s, o, g, r, a, m) {
+            i['GoogleAnalyticsObject'] = r;
+            i[r] = i[r] || function() {
                 (i[r].q = i[r].q || []).push(arguments)
-            }, i[r].l = 1 * new Date(); a = s.createElement(o),
-            m = s.getElementsByTagName(o)[0]; a.async = 1; a.src = g; m.parentNode.insertBefore(a, m)
-        })(window, document, 'script', '//www.google-analytics.com/analytics.js', 'ga');
-        ga('create', 'UA-10866840-27', 'auto');
+            }, i[r].l = 1 * new Date();
+            a = s.createElement(o),
+            m = s.getElementsByTagName(o)[0];
+            a.async = 1;
+            a.src = g;
+            m.parentNode.insertBefore(a, m)
+        })(window, document, 'script', 'https://www.google-analytics.com/analytics.js', 'ga');
+        ga('create', 'UA-10866840-36', 'auto');
         ga('send', 'pageview');
     </script>
-    -->
 </head>
 <body>
     <div id='map'></div>
@@ -160,79 +163,6 @@
                         </div>
                     </div>
                 </div>
-<!--
-                <div class='rc-page' data-value='4'>
-                    <p>Below is a list of selected imagery in order of date picked.</p>
-                    <div id='media-list'>
-                        <div class='media'>
-                            <div class='media-left'>
-                                <a target='_blank' href='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
-                                    <img class='media-object' height='64' alt='' src='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
-                                </a>
-                            </div>
-                            <div class='media-body'>
-                                <h4 class='media-heading'>Friday, 3 August 2010</h4>
-                                <p>Landsat 8, 7% cloud coverage.</p>
-                            </div>
-                        </div>
-                        <div class='media'>
-                            <div class='media-left'>
-                                <a target='_blank' href='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
-                                    <img class='media-object' height='64' alt='' src='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
-                                </a>
-                            </div>
-                            <div class='media-body'>
-                                <h4 class='media-heading'>Friday, 4 August 2010</h4>
-                                <p>Landsat 8, 7% cloud coverage.</p>
-                            </div>
-                        </div>
-                        <div class='media'>
-                            <div class='media-left'>
-                                <a target='_blank' href='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
-                                    <img class='media-object' height='64' alt='' src='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
-                                </a>
-                            </div>
-                            <div class='media-body'>
-                                <h4 class='media-heading'>Friday, 3 August 2010</h4>
-                                <p>Landsat 8, 7% cloud coverage.</p>
-                            </div>
-                        </div>
-                        <div class='media'>
-                            <div class='media-left'>
-                                <a target='_blank' href='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
-                                    <img class='media-object' height='64' alt='' src='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
-                                </a>
-                            </div>
-                            <div class='media-body'>
-                                <h4 class='media-heading'>Friday, 4 August 2010</h4>
-                                <p>Landsat 8, 7% cloud coverage.</p>
-                            </div>
-                        </div>
-                        <div class='media'>
-                            <div class='media-left'>
-                                <a target='_blank' href='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
-                                    <img class='media-object' height='64' alt='' src='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
-                                </a>
-                            </div>
-                            <div class='media-body'>
-                                <h4 class='media-heading'>Friday, 3 August 2010</h4>
-                                <p>Landsat 8, 7% cloud coverage.</p>
-                            </div>
-                        </div>
-                        <div class='media'>
-                            <div class='media-left'>
-                                <a target='_blank' href='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
-                                    <img class='media-object' height='64' alt='' src='https://landsatlook.usgs.gov/arcgis/rest/directories/arcgisoutput/LandsatLook_ImageServer/_ags_19fe91ee_28f6_4c32_be86_7f46f9da48a2.jpg'>
-                                </a>
-                            </div>
-                            <div class='media-body'>
-                                <h4 class='media-heading'>Friday, 4 August 2010</h4>
-                                <p>Landsat 8, 7% cloud coverage.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
--->
             </div>
             <div class='rc-footer'>
                 <div class='btn-group' role='group'>
@@ -240,35 +170,6 @@
                     <button id='button-next' type='button' class='btn btn-primary rc-button'>Next <span class='glyphicon glyphicon-chevron-right' aria-hidden='true'></span></button>
                 </div>
             </div>
-<!--
-            <div id='image-identify'>
-                <img id='image-identify-preview' height='300px' width='300px'/>
-                <div id='image-identify-content'>
-                    <div>
-                        <div class='rc-heading-wide'>Date</div>
-                        <div class='rc-value'>1/2/2018 10:00pm</div>
-                    </div>
-                    <div>
-                        <div class='rc-heading-wide'>Cloud</div>
-                        <div class='rc-value'>10%</div>
-                    </div>
-                    <div>
-                        <div class='rc-heading-wide'>Sun Azimuth</div>
-                        <div class='rc-value'>100</div>
-                    </div>
-                    <div>
-                        <div class='rc-heading-wide'>Sun Altitude</div>
-                        <div class='rc-value'>20</div>
-                    </div>
-                </div>
-                <div class='rc-footer'>
-                    <div class='btn-group' role='group'>
-                        <button id='button-identify-back' type='button' class='btn btn-primary rc-button'><span class='glyphicon glyphicon-chevron-left' aria-hidden='true'></span> Back</button>
-                        <button id='button-identify-favorite' type='button' class='btn btn-primary rc-button'><span class='glyphicon glyphicon-star' aria-hidden='true'></span> Favroite</button>
-                    </div>
-                </div>
-            </div>
--->
         </div>
     </div>
 </body>

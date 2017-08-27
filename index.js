@@ -149,7 +149,6 @@ require([
                             }
 
                             //
-
                             _view.map.add(new ImageryLayer({
                                 url: _landsat._setting.url,
                                 mosaicRule: new MosaicRule({
@@ -471,7 +470,11 @@ require([
                     d++;
                     m = 0;
                 }
-                return ("" + d + ":" + m + ":" + s);
+                return string.substitute('${d}°${m}\'${s}"', {
+                    d: d,
+                    m: string.pad(m, 2),
+                    s: string.pad(s, 2)
+                });
             }
 
             // Definition of external renderer.
@@ -642,8 +645,8 @@ require([
                         "<div><div class='rc-popup-heading'>Date</div><div class='rc-popup-value'>${date} ${time}</div></div>" +
                         "<div><div class='rc-popup-heading'>Sensor</div><div class='rc-popup-value'>${sensor}</div></div>" +
                         "<div><div class='rc-popup-heading'>Cloud</div><div class='rc-popup-value'>${cloud}</div></div>" +
-                        "<div><div class='rc-popup-heading'>Sun Alt</div><div class='rc-popup-value'>${sunalt}&#176;</div></div>" +
-                        "<div><div class='rc-popup-heading'>Sun Az</div><div class='rc-popup-value'>${sunaz}&#176;</div></div>" +
+                        "<div><div class='rc-popup-heading'>Sun Alt</div><div class='rc-popup-value'>${sunalt}</div></div>" +
+                        "<div><div class='rc-popup-heading'>Sun Az</div><div class='rc-popup-value'>${sunaz}</div></div>" +
                         "</div>", {
                             date: (new Date(plane.userData.attributes.date)).toLocaleDateString(),
                             time: (new Date(plane.userData.attributes.date)).toLocaleTimeString(),
@@ -652,14 +655,8 @@ require([
                                 type: 'percent',
                                 places: 0
                             }),
-                            sunalt: number.format(plane.userData.attributes.sunAlt, {
-                                type: 'decimal',
-                                places: 0
-                            }),
-                            sunaz: number.format(plane.userData.attributes.sunAz, {
-                                type: 'decimal',
-                                places: 0
-                            })
+                            sunalt: deg_to_dms(plane.userData.attributes.sunAlt),
+                            sunaz: deg_to_dms(plane.userData.attributes.sunAz)
                         });
 
                     //
