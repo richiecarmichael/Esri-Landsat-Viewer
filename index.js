@@ -20,6 +20,8 @@ require([
         'esri/geometry/ScreenPoint',
         'esri/geometry/Extent',
         'esri/layers/ImageryLayer',
+        'esri/layers/support/MosaicRule',
+        'esri/layers/support/RasterFunction',
         'esri/symbols/SimpleFillSymbol',
         'esri/views/SceneView',
         'esri/views/3d/externalRenderers',
@@ -27,8 +29,10 @@ require([
         'esri/tasks/support/Query',
         'esri/widgets/Home',
         'esri/widgets/Search',
+        'esri/widgets/Popup',
         'dojo/string',
         'dojo/request',
+        'dojo/number',
         'dojo/domReady!'
     ],
     function (
@@ -39,6 +43,8 @@ require([
         ScreenPoint,
         Extent,
         ImageryLayer,
+        MosaicRule,
+        RasterFunction,
         SimpleFillSymbol,
         SceneView,
         ExternalRenderers,
@@ -46,8 +52,10 @@ require([
         Query,
         Home,
         Search,
+        Popup,
         string,
-        request
+        request,
+        number
     ) {
         // Enforce strict mode
         'use strict';
@@ -82,9 +90,9 @@ require([
                     tilt: 23
                 },
                 popup: {
-                    dockEnabled: false,
+                    dockEnabled: true,
                     dockOptions: {
-                        buttonEnabled: false
+                        buttonEnabled: true
                     }
                 },
                 container: 'map',
@@ -95,7 +103,8 @@ require([
                     ]
                 },
                 map: new Map({
-                    basemap: 'satellite'
+                    basemap: 'satellite',
+                    ground: "world-elevation"
                 }),
                 environment: {
                     lighting: {
@@ -118,20 +127,44 @@ require([
                     _view,
                     _landsat
                 );
-                
-                // 
-                _landsat.interaction(function(e){
-                    //
-                    $('#image-identify').animate({ 'margin-left': '0px' }, {
-                        duration: 300,
-                        easing: 'swing',
-                        queue: false
-                    });
-                    
-                    //
-                    $('#image-identify-preview').prop({
-                        src: e.image
-                    });
+
+                // Add custom popup actions
+                _view.popup.actions.removeAll();
+                _view.popup.actions.push({
+                    title: "Add to Scene",
+                    id: "add-to-scene",
+                    className: "esri-icon-plus"
+                }, {
+                    title: "Download",
+                    id: "download",
+                    className: "esri-icon-download"
+                });
+
+                _view.popup.on("trigger-action", function (e) {
+                    switch (e.action.id) {
+                        case "add-to-scene":
+                            // Exit if no referencec to landsat.
+                            if (!_landsat || !_landsat._selected) {
+                                return;
+                            }
+
+                            //
+
+                            _view.map.add(new ImageryLayer({
+                                url: _landsat._setting.url,
+                                mosaicRule: new MosaicRule({
+                                    method: 'lock-raster',
+                                    lockRasterIds: [_landsat._selected.id],
+                                    renderingRule: new RasterFunction({
+                                        functionName: _landsat._setting.function
+                                    })
+                                })
+                            }));
+
+                            break;
+                        case "download":
+                            break;
+                    }
                 });
             });
 
@@ -239,6 +272,11 @@ require([
                 }
             });
 
+            // Handle click operations.
+            _view.on('click', function (e) {
+                _landsat.click(e);
+            });
+
             // Update page visiblity.
             pageUpdates();
 
@@ -255,7 +293,7 @@ require([
             });
             $('#button-next').click(function () {
                 // Invalid page
-                if (_page === 4) {
+                if (_page === 3) {
                     return;
                 }
 
@@ -317,7 +355,7 @@ require([
                 // Reorder landsat images.
                 _landsat.sort(field, order);
             });
-            
+
             function pageUpdates() {
                 // Show current page.
                 $('.rc-page').hide();
@@ -390,6 +428,10 @@ require([
                         }
                         break;
                     case 3:
+                        // Update navigation buttons.
+                        $('#button-previous').show();
+                        $('#button-next').hide();
+
                         // Order/Filter page.
                         if (!$("#slider-swipe-internal").length) {
                             $('#slider-swipe').slider({
@@ -412,10 +454,24 @@ require([
                             });
                         }
                         break;
-                    case 4:
-                        // Order/Purchase/Download page.
-                        break;
                 }
+            }
+
+            function deg_to_dms(deg) {
+                var d = Math.floor(deg);
+                var minfloat = (deg - d) * 60;
+                var m = Math.floor(minfloat);
+                var secfloat = (minfloat - m) * 60;
+                var s = Math.round(secfloat);
+                if (s === 60) {
+                    m++;
+                    s = 0;
+                }
+                if (m === 60) {
+                    d++;
+                    m = 0;
+                }
+                return ("" + d + ":" + m + ":" + s);
             }
 
             // Definition of external renderer.
@@ -446,7 +502,7 @@ require([
 
                 // Height limits and offset off the ground.
                 RADIUS: 6378137,
-                OFFSET: 10000,
+                OFFSET: 20000,
                 HEIGHT: 1000000,
 
                 // Downloading state and cancel flag.
@@ -460,6 +516,7 @@ require([
 
                 // The image current under the mouse.
                 _intersected: null,
+                _selected: null,
 
                 // Webgl setup.
                 setup: function (context) {
@@ -522,7 +579,7 @@ require([
                     context.resetWebGLState();
 
                     // Update renderer size and ratio on window resize.
-                    this.view.on('resize', function(e){
+                    this.view.on('resize', function (e) {
                         this.camera.aspect = e.width / e.height;
                         this.camera.updateProjectionMatrix();
                         this.renderer.setSize(e.width, e.height);
@@ -530,22 +587,96 @@ require([
 
                     // Perform raycasting on mouse move.
                     this.mouse = new THREE.Vector2();
-                    this.view.on('pointer-move', function(e){
+                    this.view.on('pointer-move', function (e) {
                         this.mouse.x = (e.x / this.view.width) * 2 - 1;
                         this.mouse.y = -(e.y / this.view.height) * 2 + 1;
                     }.bind(this));
-                    
-                    // Perform identify on click.
-                    this.view.on('pointer-down', function(e){
-                        this.raycaster.setFromCamera(this.mouse, this.camera);
-                        var intersects = this.raycaster.intersectObjects(this.images.children);
-                        if (intersects.length === 0){return;}
-                        var plane = intersects[0].object;
-                        this.pointerDown(plane.userData.attributes);
-                    }.bind(this));
                 },
-                interaction: function(pointerDown){
-                    this.pointerDown = pointerDown;
+                click: function (e) {
+                    // Stop event propogation
+                    e.stopPropagation();
+
+                    // Find intersecting image.
+                    this.raycaster.setFromCamera(this.mouse, this.camera);
+                    var intersects = this.raycaster.intersectObjects(this.images.children);
+                    if (intersects.length === 0) {
+                        if (this._selected != null) {
+                            this._selected.material.emissive.setHex(0);
+                        }
+                        this._selected = null;
+                        this.view.popup.close();
+                        return;
+                    }
+
+                    // Get plane and store plane.
+                    var plane = intersects[0].object;
+                    if (this._selected === plane) {
+                        return;
+                    }
+                    if (this._selected !== null && this._selected !== plane) {
+                        this._selected.material.emissive.setHex(0);
+                    }
+                    this._selected = plane;
+                    this._selected.material.emissive.setHex(0xffa500);
+
+                    // Get intersection in geographic coordinates.
+                    var internal = [
+                        intersects[0].point.x,
+                        intersects[0].point.y,
+                        intersects[0].point.z
+                    ];
+                    var geographic = new Array(3);
+                    ExternalRenderers.fromRenderCoordinates(
+                        this.view,
+                        internal,
+                        0,
+                        geographic,
+                        0,
+                        SpatialReference.WGS84,
+                        1
+                    );
+
+                    //
+                    var content = string.substitute(
+                        "<div>" +
+                        "<div><div class='rc-popup-heading'>Date</div><div class='rc-popup-value'>${date} ${time}</div></div>" +
+                        "<div><div class='rc-popup-heading'>Sensor</div><div class='rc-popup-value'>${sensor}</div></div>" +
+                        "<div><div class='rc-popup-heading'>Cloud</div><div class='rc-popup-value'>${cloud}</div></div>" +
+                        "<div><div class='rc-popup-heading'>Sun Alt</div><div class='rc-popup-value'>${sunalt}&#176;</div></div>" +
+                        "<div><div class='rc-popup-heading'>Sun Az</div><div class='rc-popup-value'>${sunaz}&#176;</div></div>" +
+                        "</div>", {
+                            date: (new Date(plane.userData.attributes.date)).toLocaleDateString(),
+                            time: (new Date(plane.userData.attributes.date)).toLocaleTimeString(),
+                            sensor: plane.userData.attributes.sensor,
+                            cloud: number.format(plane.userData.attributes.cloud, {
+                                type: 'percent',
+                                places: 0
+                            }),
+                            sunalt: number.format(plane.userData.attributes.sunAlt, {
+                                type: 'decimal',
+                                places: 0
+                            }),
+                            sunaz: number.format(plane.userData.attributes.sunAz, {
+                                type: 'decimal',
+                                places: 0
+                            })
+                        });
+
+                    //
+                    this.view.popup.open({
+                        content: $(content)[0],
+                        location: geographic,
+                        title: plane.userData.attributes.name
+                    });
+
+                    this.view.popup.watch('visible', function (v) {
+                        if (!v) {
+                            if (this._selected) {
+                                this._selected.material.emissive.setHex(0);
+                            }
+                            this._selected = null;
+                        }
+                    }.bind(this));
                 },
                 render: function (context) {
                     // Get Esri's camera
@@ -578,30 +709,31 @@ require([
                     if (this.mixer) {
                         this.mixer.update(this.clock.getDelta());
                     }
-            
+
                     // Highlight images under mouse.
                     this.raycaster.setFromCamera(this.mouse, this.camera);
                     var intersects = this.raycaster.intersectObjects(this.images.children);
                     if (intersects.length > 0) {
-                        if (this._intersected != intersects[0].object) {
+                        if (this._intersected !== intersects[0].object) {
                             // Remove highlight from previous image (if any).
                             if (this._intersected) {
-                                this._intersected.material.emissive.setHex(this._intersected.currentHex);
-                                
+                                if (this._intersected !== this._selected) {
+                                    this._intersected.material.emissive.setHex(0);
+                                }
                                 // Remove boxing graphics.
                                 this.box.children.length = 0;
                             }
-                            
+
                             // Highlight image.
                             this._intersected = intersects[0].object;
-                            this._intersected.currentHex = this._intersected.material.emissive.getHex();
-                            this._intersected.material.emissive.setHex(0x00ffff);
-                            
+                            if (this._intersected !== this._selected) {
+                                this._intersected.material.emissive.setHex(0x00ffff);
+                            }
                             // Draw box to Earth.
                             var v = this._intersected.position;
                             var p = this._intersected.geometry.getAttribute('position');
                             var m = this._intersected.matrixWorld;
-                            
+
                             // Add box around image.
                             /*
                                   5____4
@@ -617,7 +749,7 @@ require([
                                 6: min.x, min.y, min.z
                                 7: max.x, min.y, min.z
                             */
-                            
+
                             var min = new THREE.Vector3(p.array[6], p.array[7], this.RADIUS + this.OFFSET - v.length());
                             var max = new THREE.Vector3(p.array[3], p.array[4], 0);
                             var indices = new Uint16Array([0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7]);
@@ -643,15 +775,16 @@ require([
                                     transparent: true
                                 })
                             );
-                            
+
                             linesegment.applyMatrix(m);
                             this.box.add(linesegment);
                         }
                     } else {
                         if (this._intersected) {
                             // Remove highlight from image.
-                            this._intersected.material.emissive.setHex(this._intersected.currentHex);
-                            
+                            if (this._intersected !== this._selected) {
+                                this._intersected.material.emissive.setHex(0);
+                            }
                             // Remove boxing graphics.
                             this.box.children.length = 0;
                         }
@@ -819,21 +952,16 @@ require([
                                 url += '&mosaicRule=' + string.substitute('{mosaicMethod:"esriMosaicLockRaster",lockRasterIds:[${id}]}', {
                                     id: id
                                 });
+                                url += string.substitute('&size=${w},${h}', {
+                                    w: SIZE,
+                                    h: SIZE
+                                });
                                 if (setting.function) {
                                     url += '&renderingRule=' + string.substitute('{rasterFunction:\'${fxn}\'}', {
                                         fxn: setting.function
                                     });
                                 }
-                                var preview = url;
-                                url += string.substitute('&size=${w},${h}', {
-                                    w: SIZE,
-                                    h: SIZE
-                                });
-                                preview += string.substitute('&size=${w},${h}', {
-                                    w: 300,
-                                    h: 300
-                                });
-                                
+
                                 var loader = new THREE.TextureLoader();
                                 loader.setCrossOrigin('');
                                 loader.load(
@@ -887,13 +1015,14 @@ require([
                                         plane.position.fromArray(coordinates);
                                         plane.applyMatrix(matrix);
                                         plane.userData.attributes = {
-                                            name:   f.attributes[setting.name],
-                                            date:   f.attributes[setting.date],
+                                            id: id,
+                                            name: f.attributes[setting.name],
+                                            date: f.attributes[setting.date],
                                             sensor: f.attributes[setting.sensor],
-                                            cloud:  f.attributes[setting.cloud],
+                                            cloud: f.attributes[setting.cloud],
                                             sunAlt: f.attributes[setting.sunAlt],
-                                            sunAz:  f.attributes[setting.sunAz],
-                                            image:  preview
+                                            sunAz: f.attributes[setting.sunAz]
+                                            //image: url
                                         };
 
                                         // Pre-calculate all heights.
