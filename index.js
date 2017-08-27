@@ -12,6 +12,73 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 */
+
+/*
+    Landsat Look sample footprint query
+    -----------------------------------
+    
+    https://landsatlook.usgs.gov/arcgis/rest/services/LandsatLook/ImageServer/query
+    f:json
+    where:(acquisitionDate >= date'2013-01-01' AND
+           acquisitionDate <= date'2017-12-31') AND 
+           (dayOfYear >= 1 AND  dayOfYear <= 365) AND 
+           (sensor = 'OLI') AND 
+           (cloudCover <= 20) AND 
+           (dayOrNight = 'DAY')
+    returnGeometry:true
+    spatialRel:esriSpatialRelIntersects
+    geometry:{"xmin":-10758372.309998687,
+              "ymin":4537971.325052022,
+              "xmax":-10224841.852568414,
+              "ymax":4808558.405181416,
+              "spatialReference":{"wkid":102100}}
+    geometryType:esriGeometryEnvelope
+    inSR:102100
+    outFields:sceneID,sensor,acquisitionDate,CenterX,CenterY,
+              PR,OBJECTID,dayOrNight,path,row,cloudCover,
+              sunElevation,sunAzimuth,receivingStation,sceneStartTime,
+              month,year,dayOfYear
+    orderByFields:acquisitionDate DESC
+    outSR:102100
+    
+    Landsat Look sample image export
+    --------------------------------
+    
+    https://landsatlook.usgs.gov/arcgis/rest/services/LandsatLook/ImageServer/exportImage
+    f:image
+    format:jpg
+    renderingRule:{"rasterFunction":"Stretch",
+                   "rasterFunctionArguments":{"StretchType":0},
+                   "variableName":"Raster"}
+    mosaicRule:{"mosaicMethod":"esriMosaicLockRaster",
+                "ascending":true,
+                "lockRasterIds":[3578800,3580067,3583249,3587733,3587734,3590088,3590089],
+                "mosaicOperation":"MT_FIRST"}
+    bbox:-10758372.309998687,4537971.325052022,-10224841.852568414,4808558.405181416
+    imageSR:102100
+    bboxSR:102100
+    size:1745,885
+    _ts:1499904055307
+    
+    Esri Landsat service
+    --------------------
+    
+    https://landsat2.arcgis.com/arcgis/rest/services/Landsat/PS/ImageServer
+    raster function: Pansharpened Natural Color
+    fields: AcquisitionDate/DayOfYear/SensorName/CloudCover
+    
+    Sensor filtering
+    ----------------
+    
+    SENSOR                                   LANDSAT LOOK             ESRI
+    Landsat 8 OLI (2013-present):            sensor = 'OLI'           SensorName = 'Landsat 8'
+    Landsat 7 ETM+ SLC-off (2003-present):   sensor = 'ETM_SLC_OFF'   ?
+    Landsat 7 ETM+ SLC-on (1999-2003):       sensor = 'ETM'           SensorName = 'LANDSAT-7-ETM+'
+    Landsat 4-5 TM (1982-2011):              sensor = 'TM'            n/a
+    Landsat 1-5 MSS (1972-2013):             sensor = 'MSS'           n/a
+    
+*/
+
 require([
         'esri/Map',
         'esri/Camera',
@@ -281,22 +348,12 @@ require([
 
             // Button clicks.
             $('#button-previous').click(function () {
-                // Invalid page
-                if (_page === 1) {
-                    return;
-                }
-
-                // Peform actions and update page.
+                if (_page === 1) {return;}
                 _page--;
                 pageUpdates();
             });
             $('#button-next').click(function () {
-                // Invalid page
-                if (_page === 3) {
-                    return;
-                }
-
-                // Peform actions and update page.
+                if (_page === 3) { return;}
                 _page++;
                 pageUpdates();
             });
@@ -304,6 +361,10 @@ require([
                 _drag.enabled = true;
             });
             $('#button-start-download').click(function () {
+                // Remove previous images.
+                $('#download-progress .progress-bar').width('0%');
+                _landsat.clear();
+                
                 // Commence download
                 _landsat.download(
                     _landsat.ESRI,
@@ -397,7 +458,7 @@ require([
                                 ticks: [1960, 1980, 2000, 2020],
                                 ticks_labels: ['1960', '1980', '2000', '2020'],
                                 range: true,
-                                value: [2014, 2020]
+                                value: [1960, 2020]
                             });
                         }
                         if (!$("#slider-cloud-internal").length) {
@@ -483,7 +544,7 @@ require([
                 USGS: {
                     host: 'USGS',
                     url: 'https://landsatlook.usgs.gov/arcgis/rest/services/LandsatLook/ImageServer',
-                    function: null,
+                    function: '{"rasterFunction":"Stretch","rasterFunctionArguments":{"StretchType":0},"variableName":"Raster"}',
                     name: 'Name',
                     date: 'acquisitionDate',
                     sensor: 'sensor',
@@ -494,7 +555,7 @@ require([
                 ESRI: {
                     host: 'ESRI',
                     url: 'https://landsat2.arcgis.com/arcgis/rest/services/Landsat/PS/ImageServer',
-                    function: 'Pansharpened Natural Color',
+                    function: '{"rasterFunction":"Pansharpened Natural Color"}',
                     name: 'Name',
                     date: 'AcquisitionDate',
                     sensor: 'SensorName',
@@ -603,7 +664,7 @@ require([
                     this.raycaster.setFromCamera(this.mouse, this.camera);
                     var intersects = this.raycaster.intersectObjects(this.images.children);
                     if (intersects.length === 0) {
-                        if (this._selected != null) {
+                        if (this._selected !== null) {
                             this._selected.material.emissive.setHex(0);
                         }
                         this._selected = null;
@@ -802,6 +863,13 @@ require([
                     // If user clicked the Cancel button then enable cancellation flag.
                     this._cancelDownload = true;
                 },
+                clear: function(){
+                    this.box.children.length = 0;
+                    this.images.children.length = 0;
+                    this._intersected = null;
+                    this._selected = null;
+                    this.view.popup.close();
+                },
                 filter: function (bottom, top) {
                     var min = bottom * this.HEIGHT + this.OFFSET + this.RADIUS;
                     var max = top * this.HEIGHT + this.OFFSET + this.RADIUS;
@@ -953,11 +1021,7 @@ require([
                                     w: SIZE,
                                     h: SIZE
                                 });
-                                if (setting.function) {
-                                    url += '&renderingRule=' + string.substitute('{rasterFunction:\'${fxn}\'}', {
-                                        fxn: setting.function
-                                    });
-                                }
+                                url += '&renderingRule=' + setting.function;
 
                                 var loader = new THREE.TextureLoader();
                                 loader.setCrossOrigin('');
@@ -1019,7 +1083,6 @@ require([
                                             cloud: f.attributes[setting.cloud],
                                             sunAlt: f.attributes[setting.sunAlt],
                                             sunAz: f.attributes[setting.sunAz]
-                                            //image: url
                                         };
 
                                         // Pre-calculate all heights.
