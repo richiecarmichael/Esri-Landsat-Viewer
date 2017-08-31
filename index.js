@@ -66,6 +66,7 @@
     https://landsat2.arcgis.com/arcgis/rest/services/Landsat/PS/ImageServer
     raster function: Pansharpened Natural Color
     fields: AcquisitionDate/DayOfYear/SensorName/CloudCover
+    where:((AcquisitionDate > timestamp '2017-08-16 04:59:59') AND (AcquisitionDate < timestamp '2018-08-23 05:00:00')) AND (1=1)
     
     Sensor filtering
     ----------------
@@ -130,7 +131,6 @@ require([
         $(document).ready(function () {
             // Constants
             var THREE = window.THREE;
-            var SIZE = 256;
 
             // Current UI page.
             var _page = 1;
@@ -206,7 +206,6 @@ require([
                     id: "download",
                     className: "esri-icon-download"
                 });
-
                 _view.popup.on("trigger-action", function (e) {
                     switch (e.action.id) {
                         case "add-to-scene":
@@ -215,16 +214,16 @@ require([
                                 return;
                             }
 
-                            //
+                            // Add lock raster imagery layer.
                             _view.map.add(new ImageryLayer({
                                 url: _landsat._setting.url,
                                 mosaicRule: new MosaicRule({
                                     method: 'lock-raster',
-                                    lockRasterIds: [_landsat._selected.id],
-                                    renderingRule: new RasterFunction({
-                                        functionName: _landsat._setting.function
-                                    })
-                                })
+                                    lockRasterIds: [_landsat._selected.userData.attributes.id]
+                                }),
+                                renderingRule: new RasterFunction(
+                                    _landsat._setting.rasterFunction
+                                )
                             }));
 
                             break;
@@ -362,13 +361,47 @@ require([
             });
             $('#button-start-download').click(function () {
                 // Remove previous images.
+                $('#download-progress > p').empty();
                 $('#download-progress .progress-bar').width('0%');
                 _landsat.clear();
                 
+                // Disable UI.
+                $('.rc-host button').addClass('disabled');
+                $('#slider-date, #slider-cloud, #slider-resolution').slider("disable");
+                $('#satellites .checkbox').addClass('disabled');
+                
+                // Get settings
+                var settings = null;
+                switch($('.rc-host li.active').attr('data-host')){
+                    case 'esri':
+                        settings = _landsat.ESRI;
+                        break;
+                    case 'usgs':
+                        settings = _landsat.USGS;
+                        break;
+                }
+                
+                // Get parameters.
+                var parameters = {
+                    extent: _drag.graphic.geometry,
+                    date: {
+                        from: $('#slider-date').slider('getValue')[0],
+                        to: $('#slider-date').slider('getValue')[1]
+                    },
+                    cloud: $('#slider-cloud').slider('getValue'),
+                    resolution: Math.pow(2, $('#slider-resolution').slider('getValue')),
+                    sensors: {
+                        oli: $('#satellites input[data-sensor=oli]').prop('checked'),
+                        etm: $('#satellites input[data-sensor=etm]').prop('checked'),
+                        tm: $('#satellites input[data-sensor=tm]').prop('checked'),
+                        mss: $('#satellites input[data-sensor=mss]').prop('checked')
+                    }
+                };
+                
                 // Commence download
                 _landsat.download(
-                    _landsat.ESRI,
-                    _drag.graphic.geometry,
+                    settings,
+                    parameters,
                     function (e) {
                         // Progress event.
                         $('#download-progress > p').html(function () {
@@ -385,6 +418,13 @@ require([
                             var tt = ss.toFixed();
                             return tt + '%';
                         });
+                        
+                        // Show next button if one or more image downloaded.
+                        if (_landsat.images.children.length === 0){
+                            $('#button-next').hide();
+                        } else{
+                            $('#button-next').show();
+                        }
                     },
                     function () {
                         // Completed event.
@@ -399,12 +439,30 @@ require([
                 _landsat.cancelDownload();
                 pageUpdates();
             });
+            $('#button-clear').click(function () {
+                _landsat.clear();
+                $('#button-start-download').show();
+                $('#button-cancel-download').hide();
+                $('#button-clear').hide();
+                $('#button-next').hide();
+                
+                $('.rc-host button').removeClass('disabled');
+                $('#slider-date, #slider-cloud, #slider-resolution').slider("enable");
+                $('#satellites .checkbox').removeClass('disabled');
+            });
             $('.rc-sort-button').click(function () {
                 // Exit if already checked.
                 if ($(this).hasClass('rc-active')) {
                     return;
                 }
-
+                
+                // Reset swipe slider.
+                $('#slider-swipe').slider('setValue', [
+                    $('#slider-swipe').slider('getAttribute', 'min'),
+                    $('#slider-swipe').slider('getAttribute', 'max')
+                ]);
+                
+                // 
                 $('.rc-sort-button').removeClass('rc-active');
                 $(this).addClass('rc-active');
 
@@ -414,6 +472,18 @@ require([
 
                 // Reorder landsat images.
                 _landsat.sort(field, order);
+            });
+            $('.rc-host a').click(function(){
+                // Exit if already checked.
+                if ($(this).parent().hasClass('active')){return;}
+                
+                // Toggle active class.
+                $(this).parent().addClass('active').siblings().removeClass('active');
+                
+                // 
+                $('.rc-host button').html(
+                    $(this).html() + ' <span class="caret"></span>'
+                );
             });
 
             function pageUpdates() {
@@ -427,25 +497,23 @@ require([
                         // Update navigation buttons.
                         $('#button-previous').hide();
 
-                        _drag.graphic ?
-                            $('#button-next').show() :
+                        if (_drag.graphic){
+                            $('#button-next').show();
+                        }
+                        else{
                             $('#button-next').hide();
-
+                        }
+                        
                         break;
                     case 2:
                         // Update navigation buttons.
                         $('#button-previous').show();
-                        $('#button-next').show();
-
-                        //
-                        if (_landsat.isDownloading) {
-                            $('#button-start-download').hide();
-                            $('#button-cancel-download').show();
-                            $('#download-progress').show();
+                        
+                        // Show next only if images downloaded.
+                        if (_landsat.images.children.length === 0){
+                            $('#button-next').hide();
                         } else {
-                            $('#button-start-download').show();
-                            $('#button-cancel-download').hide();
-                            $('#download-progress').hide();
+                            $('#button-next').show();
                         }
 
                         // Sliders
@@ -458,34 +526,71 @@ require([
                                 ticks: [1960, 1980, 2000, 2020],
                                 ticks_labels: ['1960', '1980', '2000', '2020'],
                                 range: true,
-                                value: [1960, 2020]
+                                value: [2000, 2020]
                             });
                         }
                         if (!$("#slider-cloud-internal").length) {
                             $('#slider-cloud').slider({
                                 id: 'slider-cloud-internal',
                                 min: 0,
-                                max: 40,
-                                step: 1,
-                                ticks: [0, 10, 20, 30, 40],
+                                max: 0.4,
+                                step: 0.01,
+                                ticks: [0, 0.1, 0.2, 0.3, 0.4],
                                 ticks_labels: ['0%', '10%', '20%', '30%', '40%'],
                                 range: false,
-                                value: 10
+                                value: 0.1,
+                                formatter: function(e){
+                                    return e * 100 + '%';
+                                }
                             });
                         }
                         if (!$("#slider-resolution-internal").length) {
                             $('#slider-resolution').slider({
                                 id: 'slider-resolution-internal',
-                                min: 1,
-                                max: 4,
+                                min: 7,
+                                max: 10,
                                 step: 1,
-                                ticks: [1, 2, 3, 4],
+                                ticks: [7, 8, 9, 10],
                                 ticks_labels: ['128', '256', '512', '1024'],
                                 range: false,
                                 tooltip: 'hide',
-                                value: 2
+                                value: 9
                             });
                         }
+                        
+                        // Show progress dialog if downloading.
+                        if (_landsat.isDownloading) {
+                            $('#download-progress').show();
+                            $('#button-start-download').hide();
+                            $('#button-cancel-download').show();
+                            $('#button-clear').hide();
+                            
+                            $('.rc-host button').addClass('disabled');
+                            $('#slider-date, #slider-cloud, #slider-resolution').slider("disable");
+                            $('#satellites .checkbox').addClass('disabled');
+                            $('#satellites input').prop('disabled', true);
+                        } else {
+                            $('#download-progress').hide();
+                            $('#button-cancel-download').hide();
+                            if (_landsat.images.children.length === 0){
+                                $('#button-start-download').show();
+                                $('#button-clear').hide();
+                                
+                                $('.rc-host button').removeClass('disabled');
+                                $('#slider-date, #slider-cloud, #slider-resolution').slider("enable");
+                                $('#satellites .checkbox').removeClass('disabled');
+                                $('#satellites input').removeProp('disabled');
+                            } else{
+                                $('#button-start-download').hide();
+                                $('#button-clear').show();
+                                
+                                $('.rc-host button').addClass('disabled');
+                                $('#slider-date, #slider-cloud, #slider-resolution').slider("disable");
+                                $('#satellites .checkbox').addClass('disabled');
+                                $('#satellites input').prop('disabled', true);
+                            }
+                        }
+                        
                         break;
                     case 3:
                         // Update navigation buttons.
@@ -544,22 +649,44 @@ require([
                 USGS: {
                     host: 'USGS',
                     url: 'https://landsatlook.usgs.gov/arcgis/rest/services/LandsatLook/ImageServer',
-                    function: '{"rasterFunction":"Stretch","rasterFunctionArguments":{"StretchType":0},"variableName":"Raster"}',
+                    rasterFunction: {
+                        functionName: 'Stretch', 
+                        functionArguments: {
+                            StretchType: 0
+                        },
+                        variableName: 'Raster'
+                    },
                     name: 'Name',
                     date: 'acquisitionDate',
                     sensor: 'sensor',
+                    sensors: {
+                        oli: 'OLI',
+                        etm: 'ETM',
+                        tm: 'TM',
+                        mss: 'MSS'
+                    },
                     cloud: 'cloudCover',
+                    cloudFactor: 100,
                     sunAlt: 'sunElevation',
                     sunAz: 'sunAzimuth'
                 },
                 ESRI: {
                     host: 'ESRI',
                     url: 'https://landsat2.arcgis.com/arcgis/rest/services/Landsat/PS/ImageServer',
-                    function: '{"rasterFunction":"Pansharpened Natural Color"}',
+                    rasterFunction: {
+                        functionName: 'Pansharpened Natural Color'
+                    },
                     name: 'Name',
                     date: 'AcquisitionDate',
                     sensor: 'SensorName',
+                    sensors: {
+                        oli: 'Landsat 8',
+                        etm: 'LANDSAT-7-ETM+',
+                        tm: null,
+                        mss: null
+                    },
                     cloud: 'CloudCover',
+                    cloudFactor: 1,
                     sunAlt: 'SunElevation',
                     sunAz: 'SunAzimuth'
                 },
@@ -703,16 +830,20 @@ require([
                     //
                     var content = string.substitute(
                         "<div>" +
+                        "<div><div class='rc-popup-heading'>Name</div><div class='rc-popup-value'>${name}</div></div>" + 
+                        "<div><div class='rc-popup-heading'>Id</div><div class='rc-popup-value'>${id}</div></div>" + 
                         "<div><div class='rc-popup-heading'>Date</div><div class='rc-popup-value'>${date} ${time}</div></div>" +
                         "<div><div class='rc-popup-heading'>Sensor</div><div class='rc-popup-value'>${sensor}</div></div>" +
                         "<div><div class='rc-popup-heading'>Cloud</div><div class='rc-popup-value'>${cloud}</div></div>" +
                         "<div><div class='rc-popup-heading'>Sun Alt</div><div class='rc-popup-value'>${sunalt}</div></div>" +
                         "<div><div class='rc-popup-heading'>Sun Az</div><div class='rc-popup-value'>${sunaz}</div></div>" +
                         "</div>", {
+                            name: plane.userData.attributes.name,
+                            id: plane.userData.attributes.id,
                             date: (new Date(plane.userData.attributes.date)).toLocaleDateString(),
                             time: (new Date(plane.userData.attributes.date)).toLocaleTimeString(),
                             sensor: plane.userData.attributes.sensor,
-                            cloud: number.format(plane.userData.attributes.cloud, {
+                            cloud: number.format(plane.userData.attributes.cloud / this._setting.cloudFactor, {
                                 type: 'percent',
                                 places: 0
                             }),
@@ -724,7 +855,7 @@ require([
                     this.view.popup.open({
                         content: $(content)[0],
                         location: geographic,
-                        title: plane.userData.attributes.name
+                        title: 'landsat Scene'
                     });
 
                     this.view.popup.watch('visible', function (v) {
@@ -779,7 +910,10 @@ require([
                                     this._intersected.material.emissive.setHex(0);
                                 }
                                 // Remove boxing graphics.
-                                this.box.children.length = 0;
+                                //this.box.children.length = 0;
+                                this.box.children.slice().forEach(function(e){
+                                    this.box.remove(e);  
+                                }.bind(this));
                             }
 
                             // Highlight image.
@@ -864,8 +998,14 @@ require([
                     this._cancelDownload = true;
                 },
                 clear: function(){
-                    this.box.children.length = 0;
-                    this.images.children.length = 0;
+                    this.box.children.slice().forEach(function(e){
+                        this.box.remove(e);  
+                    });
+                    //this.box.children.length = 0;
+                    this.images.children.slice().forEach(function(e){
+                        this.images.remove(e);  
+                    }.bind(this));
+                    //this.images.children.length = 0;
                     this._intersected = null;
                     this._selected = null;
                     this.view.popup.close();
@@ -922,7 +1062,7 @@ require([
                         action.play();
                     }.bind(this));
                 },
-                download: function (setting, extent, progress, completed) {
+                download: function (setting, parameters, progress, completed) {
                     // Initialized user cancellation flag.
                     this.isDownloading = true;
                     this._cancelDownload = false;
@@ -938,9 +1078,43 @@ require([
                         // Get objectid field
                         var oidField = layer.objectIdField;
 
+                        // Compile list of sensors.
+                        var sensors = '';
+                        if (parameters.sensors.oli && setting.sensors.oli){
+                            if (sensors != ''){sensors += ','}
+                            sensors += '\'' + setting.sensors.oli + '\'';
+                        }
+                        if (parameters.sensors.etm && setting.sensors.etm){
+                            if (sensors != ''){sensors += ','}
+                            sensors += '\'' + setting.sensors.etm + '\'';
+                        }
+                        if (parameters.sensors.tm && setting.sensors.tm){
+                            if (sensors != ''){sensors += ','}
+                            sensors += '\'' + setting.sensors.tm + '\'';
+                        }
+                        if (parameters.sensors.mss && setting.sensors.mss){
+                            if (sensors != ''){sensors += ','}
+                            sensors += '\'' + setting.sensors.mss + '\'';
+                        }
+                        
+                        // Build where clause.
+                        var where = string.substitute(
+                            "(${fieldDate} >= date'${dateFrom}-01-01' AND " + 
+                            "${fieldDate} <= date'${dateTo}-01-01') AND " + 
+                            "(${fieldCloud} <= ${cloud}) AND " +
+                            "(${fieldSensor} in (${sensors}))", {
+                            fieldDate: setting.date,
+                            fieldCloud: setting.cloud,
+                            fieldSensor: setting.sensor,
+                            dateFrom: parameters.date.from,
+                            dateTo: parameters.date.to,
+                            cloud: parameters.cloud * setting.cloudFactor,
+                            sensors: sensors
+                        }); 
+                            
                         // Query 
                         var query = new Query({
-                            geometry: extent,
+                            geometry: parameters.extent,
                             returnGeometry: true,
                             outFields: [
                                 setting.name,
@@ -954,7 +1128,7 @@ require([
                                 setting.date + ' ASC'
                             ],
                             outSpatialReference: this.view.spatialReference,
-                            where: 'CloudCover <= 0.1'
+                            where: where
                         });
 
                         // Query task
@@ -964,7 +1138,7 @@ require([
                         queryTask.execute(query).then(function (e) {
                             // Zoom to full extent
                             this.view.goTo({
-                                target: extent.clone().set({
+                                target: parameters.extent.clone().set({
                                     zmin: 0,
                                     zmax: this.HEIGHT * 2
                                 }),
@@ -1000,6 +1174,7 @@ require([
                                 // Footprint extent
                                 var extent = f.geometry.extent;
                                 var id = f.attributes[oidField];
+                                var rf = new RasterFunction(setting.rasterFunction);
 
                                 // Construct url to lock raster image
                                 var url = setting.url;
@@ -1018,10 +1193,10 @@ require([
                                     id: id
                                 });
                                 url += string.substitute('&size=${w},${h}', {
-                                    w: SIZE,
-                                    h: SIZE
+                                    w: parameters.resolution,
+                                    h: parameters.resolution
                                 });
-                                url += '&renderingRule=' + setting.function;
+                                url += '&renderingRule=' + JSON.stringify(rf.toJSON());
 
                                 var loader = new THREE.TextureLoader();
                                 loader.setCrossOrigin('');
@@ -1092,10 +1267,18 @@ require([
                                             var val = f.attributes[setting[field]];
                                             var min = bounds[field].min;
                                             var max = bounds[field].max;
-                                            var fac = (val - min) / (max - min);
-                                            var asc = (1 - fac) * this.HEIGHT + this.OFFSET;
-                                            var dsc = fac * this.HEIGHT + this.OFFSET;
-
+                                            var asc = null;
+                                            var dsc = null;
+                                            if (min === max){
+                                                asc = this.OFFSET;
+                                                dsc = this.OFFSET;
+                                            }
+                                            else{
+                                                var fac = min === max ? 0 : (val - min) / (max - min);
+                                                asc = (1 - fac) * this.HEIGHT + this.OFFSET;
+                                                dsc = fac * this.HEIGHT + this.OFFSET;
+                                            }
+                                            
                                             var ascending = plane.position.clone();
                                             var descending = plane.position.clone();
                                             ascending.addScaledVector(normal, asc);

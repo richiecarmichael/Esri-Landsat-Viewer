@@ -54,14 +54,14 @@
                     <p>Define the criteria for preview images.</p>
                     <div>
                         <div class='rc-heading'>Host</div>
-                        <div class='rc-value'>
+                        <div class='rc-value rc-host'>
                             <div class='btn-group'>
                                 <button type='button' class='btn btn-primary dropdown-toggle rc-button' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>
                                     Esri <span class='caret'></span>
                                 </button>
                                 <ul class='dropdown-menu'>
-                                    <li class='active'><a href='#'>Esri</a></li>
-                                    <li><a href='#'>USGS</a></li>
+                                    <li data-host='esri' class='active'><a href='#'>Esri</a></li>
+                                    <li data-host='usgs'><a href='#'>USGS</a></li>
                                 </ul>
                             </div>
                         </div>
@@ -86,21 +86,18 @@
                     </div>
                     <div>
                         <div class='rc-heading'>Satellites</div>
-                        <div class='rc-value'>
+                        <div id='satellites' class='rc-value'>
                             <div class='checkbox'>
-                                <label><input type='checkbox' checked>Landsat 8 OLI</label>
+                                <label><input data-sensor='oli' type='checkbox' checked>Landsat 8 OLI</label>
                             </div>
                             <div class='checkbox'>
-                                <label><input type='checkbox' checked>Landsat 7 ETM+ SLC-off</label>
+                                <label><input data-sensor='etm' type='checkbox' checked>Landsat 7 ETM+</label>
                             </div>
                             <div class='checkbox'>
-                                <label><input type='checkbox' checked>Landsat 7 ETM+ SLC-on</label>
+                                <label><input data-sensor='tm' type='checkbox'>Landsat 4-5 TM</label>
                             </div>
                             <div class='checkbox'>
-                                <label><input type='checkbox' checked>Landsat 4-5 TM</label>
-                            </div>
-                            <div class='checkbox'>
-                                <label><input type='checkbox' checked>Landsat 1-5 MSS</label>
+                                <label><input data-sensor='mss' type='checkbox'>Landsat 1-5 MSS</label>
                             </div>
                         </div>
                     </div>
@@ -108,7 +105,8 @@
                         <div class='rc-heading'>Download</div>
                         <div class='rc-value'>
                             <button id='button-start-download' type='button' class='btn btn-primary rc-button'><span class='glyphicon glyphicon-play' aria-hidden='true'></span> Start</button>
-                            <button id='button-cancel-download' type='button' class='btn btn-primary rc-button'><span class='glyphicon glyphicon-remove' aria-hidden='true'></span> Cancel</button>
+                            <button id='button-cancel-download' type='button' class='btn btn-primary rc-button'><span class='glyphicon glyphicon-stop' aria-hidden='true'></span> Stop</button>
+                            <button id='button-clear' type='button' class='btn btn-primary rc-button'><span class='glyphicon glyphicon-remove' aria-hidden='true'></span> Clear</button>
                         </div>
                     </div>
                     <div id='download-progress'>
