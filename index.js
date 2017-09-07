@@ -14,8 +14,8 @@
 */
 
 /*
-    Landsat Look sample footprint query
-    -----------------------------------
+    LANDSATLOOK SAMPLE FOOTPRINT QUERY
+    ----------------------------------
     
     https://landsatlook.usgs.gov/arcgis/rest/services/LandsatLook/ImageServer/query
     f:json
@@ -27,11 +27,11 @@
            (dayOrNight = 'DAY')
     returnGeometry:true
     spatialRel:esriSpatialRelIntersects
-    geometry:{"xmin":-10758372.309998687,
-              "ymin":4537971.325052022,
-              "xmax":-10224841.852568414,
-              "ymax":4808558.405181416,
-              "spatialReference":{"wkid":102100}}
+    geometry:{'xmin':-10758372.309998687,
+              'ymin':4537971.325052022,
+              'xmax':-10224841.852568414,
+              'ymax':4808558.405181416,
+              'spatialReference':{'wkid':102100}}
     geometryType:esriGeometryEnvelope
     inSR:102100
     outFields:sceneID,sensor,acquisitionDate,CenterX,CenterY,
@@ -41,35 +41,35 @@
     orderByFields:acquisitionDate DESC
     outSR:102100
     
-    Landsat Look sample image export
-    --------------------------------
+    LANDSATLOOK SAMPLE IMAGE EXPORT
+    -------------------------------
     
     https://landsatlook.usgs.gov/arcgis/rest/services/LandsatLook/ImageServer/exportImage
     f:image
     format:jpg
-    renderingRule:{"rasterFunction":"Stretch",
-                   "rasterFunctionArguments":{"StretchType":0},
-                   "variableName":"Raster"}
-    mosaicRule:{"mosaicMethod":"esriMosaicLockRaster",
-                "ascending":true,
-                "lockRasterIds":[3578800,3580067,3583249,3587733,3587734,3590088,3590089],
-                "mosaicOperation":"MT_FIRST"}
+    renderingRule:{'rasterFunction':'Stretch',
+                   'rasterFunctionArguments':{'StretchType':0},
+                   'variableName':'Raster'}
+    mosaicRule:{'mosaicMethod':'esriMosaicLockRaster',
+                'ascending':true,
+                'lockRasterIds':[3578800,3580067,3583249,3587733,3587734,3590088,3590089],
+                'mosaicOperation':'MT_FIRST'}
     bbox:-10758372.309998687,4537971.325052022,-10224841.852568414,4808558.405181416
     imageSR:102100
     bboxSR:102100
     size:1745,885
     _ts:1499904055307
     
-    Esri Landsat service
-    --------------------
+    ESRI LANDSAT SERVICE DETAILS
+    ----------------------------
     
     https://landsat2.arcgis.com/arcgis/rest/services/Landsat/PS/ImageServer
     raster function: Pansharpened Natural Color
     fields: AcquisitionDate/DayOfYear/SensorName/CloudCover
     where:((AcquisitionDate > timestamp '2017-08-16 04:59:59') AND (AcquisitionDate < timestamp '2018-08-23 05:00:00')) AND (1=1)
     
-    Sensor filtering
-    ----------------
+    ESRI AND USGS SENSOR NAMING
+    ---------------------------
     
     SENSOR                                   LANDSAT LOOK             ESRI
     Landsat 8 OLI (2013-present):            sensor = 'OLI'           SensorName = 'Landsat 8'
@@ -81,34 +81,31 @@
 */
 
 require([
-        'esri/Map',
-        'esri/Camera',
-        'esri/Graphic',
-        'esri/geometry/SpatialReference',
-        'esri/geometry/ScreenPoint',
-        'esri/geometry/Extent',
-        'esri/layers/ImageryLayer',
-        'esri/layers/support/MosaicRule',
-        'esri/layers/support/RasterFunction',
-        'esri/symbols/SimpleFillSymbol',
-        'esri/views/SceneView',
-        'esri/views/3d/externalRenderers',
-        'esri/tasks/QueryTask',
-        'esri/tasks/support/Query',
-        'esri/widgets/Home',
-        'esri/widgets/Search',
-        'esri/widgets/Popup',
-        'dojo/string',
-        'dojo/request',
-        'dojo/number',
-        'dojo/domReady!'
-    ],
+    'esri/Map',
+    'esri/Camera',
+    'esri/Graphic',
+    'esri/geometry/SpatialReference',
+    'esri/geometry/Extent',
+    'esri/layers/ImageryLayer',
+    'esri/layers/support/MosaicRule',
+    'esri/layers/support/RasterFunction',
+    'esri/symbols/SimpleFillSymbol',
+    'esri/views/SceneView',
+    'esri/views/3d/externalRenderers',
+    'esri/tasks/QueryTask',
+    'esri/tasks/support/Query',
+    'esri/widgets/Home',
+    'esri/widgets/Search',
+    'dojo/string',
+    'dojo/request',
+    'dojo/number',
+    'dojo/domReady!'
+],
     function (
         Map,
         Camera,
         Graphic,
         SpatialReference,
-        ScreenPoint,
         Extent,
         ImageryLayer,
         MosaicRule,
@@ -120,7 +117,6 @@ require([
         Query,
         Home,
         Search,
-        Popup,
         string,
         request,
         number
@@ -171,7 +167,7 @@ require([
                 },
                 map: new Map({
                     basemap: 'satellite',
-                    ground: "world-elevation"
+                    ground: 'world-elevation'
                 }),
                 environment: {
                     lighting: {
@@ -198,17 +194,17 @@ require([
                 // Add custom popup actions
                 _view.popup.actions.removeAll();
                 _view.popup.actions.push({
-                    title: "Add to Scene",
-                    id: "add-to-scene",
-                    className: "esri-icon-plus"
+                    title: 'Add to Scene',
+                    id: 'add-to-scene',
+                    className: 'esri-icon-plus'
                 }, {
-                    title: "Download",
-                    id: "download",
-                    className: "esri-icon-download"
-                });
-                _view.popup.on("trigger-action", function (e) {
+                        title: 'Download',
+                        id: 'download',
+                        className: 'esri-icon-download'
+                    });
+                _view.popup.on('trigger-action', function (e) {
                     switch (e.action.id) {
-                        case "add-to-scene":
+                        case 'add-to-scene':
                             // Exit if no referencec to landsat.
                             if (!_landsat || !_landsat._selected) {
                                 return;
@@ -227,7 +223,7 @@ require([
                             }));
 
                             break;
-                        case "download":
+                        case 'download':
                             break;
                     }
                 });
@@ -242,9 +238,9 @@ require([
             _view.ui.add(new Search({
                 view: _view
             }), {
-                position: "top-left",
-                index: 0
-            });
+                    position: 'top-left',
+                    index: 0
+                });
 
             // Handle drag operations.
             _view.on('drag', function (e) {
@@ -347,12 +343,12 @@ require([
 
             // Button clicks.
             $('#button-previous').click(function () {
-                if (_page === 1) {return;}
+                if (_page === 1) { return; }
                 _page--;
                 pageUpdates();
             });
             $('#button-next').click(function () {
-                if (_page === 3) { return;}
+                if (_page === 3) { return; }
                 _page++;
                 pageUpdates();
             });
@@ -364,15 +360,15 @@ require([
                 $('#download-progress > p').empty();
                 $('#download-progress .progress-bar').width('0%');
                 _landsat.clear();
-                
+
                 // Disable UI.
                 $('.rc-host button').addClass('disabled');
-                $('#slider-date, #slider-cloud, #slider-resolution').slider("disable");
+                $('#slider-date, #slider-cloud, #slider-resolution').slider('disable');
                 $('#satellites .checkbox').addClass('disabled');
-                
+
                 // Get settings
                 var settings = null;
-                switch($('.rc-host li.active').attr('data-host')){
+                switch ($('.rc-host li.active').attr('data-host')) {
                     case 'esri':
                         settings = _landsat.ESRI;
                         break;
@@ -380,7 +376,7 @@ require([
                         settings = _landsat.USGS;
                         break;
                 }
-                
+
                 // Get parameters.
                 var parameters = {
                     extent: _drag.graphic.geometry,
@@ -397,7 +393,7 @@ require([
                         mss: $('#satellites input[data-sensor=mss]').prop('checked')
                     }
                 };
-                
+
                 // Commence download
                 _landsat.download(
                     settings,
@@ -418,11 +414,11 @@ require([
                             var tt = ss.toFixed();
                             return tt + '%';
                         });
-                        
+
                         // Show next button if one or more image downloaded.
-                        if (_landsat.images.children.length === 0){
+                        if (_landsat.images.children.length === 0) {
                             $('#button-next').hide();
-                        } else{
+                        } else {
                             $('#button-next').show();
                         }
                     },
@@ -445,9 +441,9 @@ require([
                 $('#button-cancel-download').hide();
                 $('#button-clear').hide();
                 $('#button-next').hide();
-                
+
                 $('.rc-host button').removeClass('disabled');
-                $('#slider-date, #slider-cloud, #slider-resolution').slider("enable");
+                $('#slider-date, #slider-cloud, #slider-resolution').slider('enable');
                 $('#satellites .checkbox').removeClass('disabled');
             });
             $('.rc-sort-button').click(function () {
@@ -455,13 +451,13 @@ require([
                 if ($(this).hasClass('rc-active')) {
                     return;
                 }
-                
+
                 // Reset swipe slider.
                 $('#slider-swipe').slider('setValue', [
                     $('#slider-swipe').slider('getAttribute', 'min'),
                     $('#slider-swipe').slider('getAttribute', 'max')
                 ]);
-                
+
                 // 
                 $('.rc-sort-button').removeClass('rc-active');
                 $(this).addClass('rc-active');
@@ -473,16 +469,16 @@ require([
                 // Reorder landsat images.
                 _landsat.sort(field, order);
             });
-            $('.rc-host a').click(function(){
+            $('.rc-host a').click(function () {
                 // Exit if already checked.
-                if ($(this).parent().hasClass('active')){return;}
-                
+                if ($(this).parent().hasClass('active')) { return; }
+
                 // Toggle active class.
                 $(this).parent().addClass('active').siblings().removeClass('active');
-                
+
                 // 
                 $('.rc-host button').html(
-                    $(this).html() + ' <span class="caret"></span>'
+                    $(this).html() + ' <span class=\'caret\'></span>'
                 );
             });
 
@@ -497,27 +493,27 @@ require([
                         // Update navigation buttons.
                         $('#button-previous').hide();
 
-                        if (_drag.graphic){
+                        if (_drag.graphic) {
                             $('#button-next').show();
                         }
-                        else{
+                        else {
                             $('#button-next').hide();
                         }
-                        
+
                         break;
                     case 2:
                         // Update navigation buttons.
                         $('#button-previous').show();
-                        
+
                         // Show next only if images downloaded.
-                        if (_landsat.images.children.length === 0){
+                        if (_landsat.images.children.length === 0) {
                             $('#button-next').hide();
                         } else {
                             $('#button-next').show();
                         }
 
                         // Sliders
-                        if (!$("#slider-date-internal").length) {
+                        if (!$('#slider-date-internal').length) {
                             $('#slider-date').slider({
                                 id: 'slider-date-internal',
                                 min: 1975,
@@ -529,7 +525,7 @@ require([
                                 value: [2000, 2020]
                             });
                         }
-                        if (!$("#slider-cloud-internal").length) {
+                        if (!$('#slider-cloud-internal').length) {
                             $('#slider-cloud').slider({
                                 id: 'slider-cloud-internal',
                                 min: 0,
@@ -539,12 +535,12 @@ require([
                                 ticks_labels: ['0%', '10%', '20%', '30%', '40%'],
                                 range: false,
                                 value: 0.1,
-                                formatter: function(e){
+                                formatter: function (e) {
                                     return e * 100 + '%';
                                 }
                             });
                         }
-                        if (!$("#slider-resolution-internal").length) {
+                        if (!$('#slider-resolution-internal').length) {
                             $('#slider-resolution').slider({
                                 id: 'slider-resolution-internal',
                                 min: 7,
@@ -557,40 +553,40 @@ require([
                                 value: 9
                             });
                         }
-                        
+
                         // Show progress dialog if downloading.
                         if (_landsat.isDownloading) {
                             $('#download-progress').show();
                             $('#button-start-download').hide();
                             $('#button-cancel-download').show();
                             $('#button-clear').hide();
-                            
+
                             $('.rc-host button').addClass('disabled');
-                            $('#slider-date, #slider-cloud, #slider-resolution').slider("disable");
+                            $('#slider-date, #slider-cloud, #slider-resolution').slider('disable');
                             $('#satellites .checkbox').addClass('disabled');
                             $('#satellites input').prop('disabled', true);
                         } else {
                             $('#download-progress').hide();
                             $('#button-cancel-download').hide();
-                            if (_landsat.images.children.length === 0){
+                            if (_landsat.images.children.length === 0) {
                                 $('#button-start-download').show();
                                 $('#button-clear').hide();
-                                
+
                                 $('.rc-host button').removeClass('disabled');
-                                $('#slider-date, #slider-cloud, #slider-resolution').slider("enable");
+                                $('#slider-date, #slider-cloud, #slider-resolution').slider('enable');
                                 $('#satellites .checkbox').removeClass('disabled');
                                 $('#satellites input').removeProp('disabled');
-                            } else{
+                            } else {
                                 $('#button-start-download').hide();
                                 $('#button-clear').show();
-                                
+
                                 $('.rc-host button').addClass('disabled');
-                                $('#slider-date, #slider-cloud, #slider-resolution').slider("disable");
+                                $('#slider-date, #slider-cloud, #slider-resolution').slider('disable');
                                 $('#satellites .checkbox').addClass('disabled');
                                 $('#satellites input').prop('disabled', true);
                             }
                         }
-                        
+
                         break;
                     case 3:
                         // Update navigation buttons.
@@ -598,7 +594,7 @@ require([
                         $('#button-next').hide();
 
                         // Order/Filter page.
-                        if (!$("#slider-swipe-internal").length) {
+                        if (!$('#slider-swipe-internal').length) {
                             $('#slider-swipe').slider({
                                 id: 'slider-swipe-internal',
                                 min: 0,
@@ -650,7 +646,7 @@ require([
                     host: 'USGS',
                     url: 'https://landsatlook.usgs.gov/arcgis/rest/services/LandsatLook/ImageServer',
                     rasterFunction: {
-                        functionName: 'Stretch', 
+                        functionName: 'Stretch',
                         functionArguments: {
                             StretchType: 0
                         },
@@ -694,7 +690,7 @@ require([
                 // Height limits and offset off the ground.
                 RADIUS: 6378137,
                 OFFSET: 20000,
-                HEIGHT: 1000000,
+                HEIGHT: 2000000,
 
                 // Downloading state and cancel flag.
                 _cancelDownload: true,
@@ -829,15 +825,15 @@ require([
 
                     //
                     var content = string.substitute(
-                        "<div>" +
-                        "<div><div class='rc-popup-heading'>Name</div><div class='rc-popup-value'>${name}</div></div>" + 
-                        "<div><div class='rc-popup-heading'>Id</div><div class='rc-popup-value'>${id}</div></div>" + 
-                        "<div><div class='rc-popup-heading'>Date</div><div class='rc-popup-value'>${date} ${time}</div></div>" +
-                        "<div><div class='rc-popup-heading'>Sensor</div><div class='rc-popup-value'>${sensor}</div></div>" +
-                        "<div><div class='rc-popup-heading'>Cloud</div><div class='rc-popup-value'>${cloud}</div></div>" +
-                        "<div><div class='rc-popup-heading'>Sun Alt</div><div class='rc-popup-value'>${sunalt}</div></div>" +
-                        "<div><div class='rc-popup-heading'>Sun Az</div><div class='rc-popup-value'>${sunaz}</div></div>" +
-                        "</div>", {
+                        '<div>' +
+                        '<div><div class="rc-popup-heading">Name</div><div class="rc-popup-value">${name}</div></div>' +
+                        '<div><div class="rc-popup-heading">Id</div><div class="rc-popup-value">${id}</div></div>' +
+                        '<div><div class="rc-popup-heading">Date</div><div class="rc-popup-value">${date} ${time}</div></div>' +
+                        '<div><div class="rc-popup-heading">Sensor</div><div class="rc-popup-value">${sensor}</div></div>' +
+                        '<div><div class="rc-popup-heading">Cloud</div><div class="rc-popup-value">${cloud}</div></div>' +
+                        '<div><div class="rc-popup-heading">Sun Alt</div><div class="rc-popup-value">${sunalt}</div></div>' +
+                        '<div><div class="rc-popup-heading">Sun Az</div><div class="rc-popup-value">${sunaz}</div></div>' +
+                        '</div>', {
                             name: plane.userData.attributes.name,
                             id: plane.userData.attributes.id,
                             date: (new Date(plane.userData.attributes.date)).toLocaleDateString(),
@@ -910,9 +906,8 @@ require([
                                     this._intersected.material.emissive.setHex(0);
                                 }
                                 // Remove boxing graphics.
-                                //this.box.children.length = 0;
-                                this.box.children.slice().forEach(function(e){
-                                    this.box.remove(e);  
+                                this.box.children.slice().forEach(function (e) {
+                                    this.box.remove(e);
                                 }.bind(this));
                             }
 
@@ -997,15 +992,13 @@ require([
                     // If user clicked the Cancel button then enable cancellation flag.
                     this._cancelDownload = true;
                 },
-                clear: function(){
-                    this.box.children.slice().forEach(function(e){
-                        this.box.remove(e);  
-                    });
-                    //this.box.children.length = 0;
-                    this.images.children.slice().forEach(function(e){
-                        this.images.remove(e);  
+                clear: function () {
+                    this.box.children.slice().forEach(function (e) {
+                        this.box.remove(e);
                     }.bind(this));
-                    //this.images.children.length = 0;
+                    this.images.children.slice().forEach(function (e) {
+                        this.images.remove(e);
+                    }.bind(this));
                     this._intersected = null;
                     this._selected = null;
                     this.view.popup.close();
@@ -1080,38 +1073,38 @@ require([
 
                         // Compile list of sensors.
                         var sensors = '';
-                        if (parameters.sensors.oli && setting.sensors.oli){
-                            if (sensors != ''){sensors += ','}
+                        if (parameters.sensors.oli && setting.sensors.oli) {
+                            if (sensors != '') { sensors += ',' }
                             sensors += '\'' + setting.sensors.oli + '\'';
                         }
-                        if (parameters.sensors.etm && setting.sensors.etm){
-                            if (sensors != ''){sensors += ','}
+                        if (parameters.sensors.etm && setting.sensors.etm) {
+                            if (sensors != '') { sensors += ',' }
                             sensors += '\'' + setting.sensors.etm + '\'';
                         }
-                        if (parameters.sensors.tm && setting.sensors.tm){
-                            if (sensors != ''){sensors += ','}
+                        if (parameters.sensors.tm && setting.sensors.tm) {
+                            if (sensors != '') { sensors += ',' }
                             sensors += '\'' + setting.sensors.tm + '\'';
                         }
-                        if (parameters.sensors.mss && setting.sensors.mss){
-                            if (sensors != ''){sensors += ','}
+                        if (parameters.sensors.mss && setting.sensors.mss) {
+                            if (sensors != '') { sensors += ',' }
                             sensors += '\'' + setting.sensors.mss + '\'';
                         }
-                        
+
                         // Build where clause.
                         var where = string.substitute(
-                            "(${fieldDate} >= date'${dateFrom}-01-01' AND " + 
-                            "${fieldDate} <= date'${dateTo}-01-01') AND " + 
-                            "(${fieldCloud} <= ${cloud}) AND " +
-                            "(${fieldSensor} in (${sensors}))", {
-                            fieldDate: setting.date,
-                            fieldCloud: setting.cloud,
-                            fieldSensor: setting.sensor,
-                            dateFrom: parameters.date.from,
-                            dateTo: parameters.date.to,
-                            cloud: parameters.cloud * setting.cloudFactor,
-                            sensors: sensors
-                        }); 
-                            
+                            '(${fieldDate} >= date\'${dateFrom}-01-01\' AND ' +
+                            '${fieldDate} <= date\'${dateTo}-01-01\') AND ' +
+                            '(${fieldCloud} <= ${cloud}) AND ' +
+                            '(${fieldSensor} in (${sensors}))', {
+                                fieldDate: setting.date,
+                                fieldCloud: setting.cloud,
+                                fieldSensor: setting.sensor,
+                                dateFrom: parameters.date.from,
+                                dateTo: parameters.date.to,
+                                cloud: parameters.cloud * setting.cloudFactor,
+                                sensors: sensors
+                            });
+
                         // Query 
                         var query = new Query({
                             geometry: parameters.extent,
@@ -1145,9 +1138,9 @@ require([
                                 heading: 0,
                                 tilt: 25
                             }, {
-                                animate: true,
-                                duration: 2000
-                            });
+                                    animate: true,
+                                    duration: 2000
+                                });
 
                             // Sortable fields.
                             var fields = [
@@ -1169,184 +1162,194 @@ require([
                                 };
                             });
 
-                            // Download and animate a preview image for every footprint.
-                            e.features.forEach(function (f) {
-                                // Footprint extent
-                                var extent = f.geometry.extent;
-                                var id = f.attributes[oidField];
-                                var rf = new RasterFunction(setting.rasterFunction);
+                            //
+                            if (e.features.length === 0) {
+                                // Nothing to download!
+                                this.isDownloading = false;
+                                if (completed) {
+                                    completed();
+                                }
+                            }
+                            else {
+                                // Download and animate a preview image for every footprint.
+                                e.features.forEach(function (f) {
+                                    // Footprint extent
+                                    var extent = f.geometry.extent;
+                                    var id = f.attributes[oidField];
+                                    var rf = new RasterFunction(setting.rasterFunction);
 
-                                // Construct url to lock raster image
-                                var url = setting.url;
-                                url += '/exportImage?f=image';
-                                url += string.substitute('&bbox=${xmin},${ymin},${xmax},${ymax}', {
-                                    xmin: extent.xmin,
-                                    ymin: extent.ymin,
-                                    xmax: extent.xmax,
-                                    ymax: extent.ymax
-                                });
-                                url += '&bboxSR=' + this.view.spatialReference.wkid;
-                                url += '&imageSR=' + this.view.spatialReference.wkid;
-                                url += '&format=' + 'png';
-                                url += '&interpolation=' + 'RSP_BilinearInterpolation';
-                                url += '&mosaicRule=' + string.substitute('{mosaicMethod:"esriMosaicLockRaster",lockRasterIds:[${id}]}', {
-                                    id: id
-                                });
-                                url += string.substitute('&size=${w},${h}', {
-                                    w: parameters.resolution,
-                                    h: parameters.resolution
-                                });
-                                url += '&renderingRule=' + JSON.stringify(rf.toJSON());
+                                    // Construct url to lock raster image
+                                    var url = setting.url;
+                                    url += '/exportImage?f=image';
+                                    url += string.substitute('&bbox=${xmin},${ymin},${xmax},${ymax}', {
+                                        xmin: extent.xmin,
+                                        ymin: extent.ymin,
+                                        xmax: extent.xmax,
+                                        ymax: extent.ymax
+                                    });
+                                    url += '&bboxSR=' + this.view.spatialReference.wkid;
+                                    url += '&imageSR=' + this.view.spatialReference.wkid;
+                                    url += '&format=' + 'png';
+                                    url += '&interpolation=' + 'RSP_BilinearInterpolation';
+                                    url += '&mosaicRule=' + string.substitute('{mosaicMethod:\'esriMosaicLockRaster\',lockRasterIds:[${id}]}', {
+                                        id: id
+                                    });
+                                    url += string.substitute('&size=${w},${h}', {
+                                        w: parameters.resolution,
+                                        h: parameters.resolution
+                                    });
+                                    url += '&renderingRule=' + JSON.stringify(rf.toJSON());
 
-                                var loader = new THREE.TextureLoader();
-                                loader.setCrossOrigin('');
-                                loader.load(
-                                    url,
-                                    function (texture) {
-                                        // Exit if user cancelled image loading.
-                                        if (this._cancelDownload) {
-                                            this.isDownloading = false;
-                                            if (completed) {
-                                                completed();
+                                    var loader = new THREE.TextureLoader();
+                                    loader.setCrossOrigin('');
+                                    loader.load(
+                                        url,
+                                        function (texture) {
+                                            // Exit if user cancelled image loading.
+                                            if (this._cancelDownload) {
+                                                this.isDownloading = false;
+                                                if (completed) {
+                                                    completed();
+                                                }
+                                                return;
                                             }
-                                            return;
-                                        }
 
-                                        // Center coordinate array
-                                        var coordinates = [
-                                            extent.center.x,
-                                            extent.center.y,
-                                            0
-                                        ];
+                                            // Center coordinate array
+                                            var coordinates = [
+                                                extent.center.x,
+                                                extent.center.y,
+                                                0
+                                            ];
 
-                                        // Transform to internal rendering space
-                                        var transform = ExternalRenderers.renderCoordinateTransformAt(
-                                            this.view,
-                                            coordinates,
-                                            f.geometry.spatialReference,
-                                            new Float64Array(16)
-                                        );
-                                        var matrix = new THREE.Matrix4();
-                                        matrix.fromArray(transform);
+                                            // Transform to internal rendering space
+                                            var transform = ExternalRenderers.renderCoordinateTransformAt(
+                                                this.view,
+                                                coordinates,
+                                                f.geometry.spatialReference,
+                                                new Float64Array(16)
+                                            );
+                                            var matrix = new THREE.Matrix4();
+                                            matrix.fromArray(transform);
 
-                                        // Create plane geometry.
-                                        var geometry = new THREE.PlaneBufferGeometry(
-                                            extent.width,
-                                            extent.height,
-                                            1,
-                                            1
-                                        );
+                                            // Create plane geometry.
+                                            var geometry = new THREE.PlaneBufferGeometry(
+                                                extent.width,
+                                                extent.height,
+                                                1,
+                                                1
+                                            );
 
-                                        // Create textured material.
-                                        var material = new THREE.MeshLambertMaterial({
-                                            map: texture,
-                                            side: THREE.DoubleSide,
-                                            transparent: true,
-                                            opacity: 0,
-                                            emissiveIntensity: 0.5
-                                        });
-
-                                        // Create a plane mesh from the geometry and material.
-                                        var plane = new THREE.Mesh(geometry, material);
-                                        plane.position.fromArray(coordinates);
-                                        plane.applyMatrix(matrix);
-                                        plane.userData.attributes = {
-                                            id: id,
-                                            name: f.attributes[setting.name],
-                                            date: f.attributes[setting.date],
-                                            sensor: f.attributes[setting.sensor],
-                                            cloud: f.attributes[setting.cloud],
-                                            sunAlt: f.attributes[setting.sunAlt],
-                                            sunAz: f.attributes[setting.sunAz]
-                                        };
-
-                                        // Pre-calculate all heights.
-                                        var positions = {};
-                                        var normal = plane.position.clone().normalize();
-                                        fields.forEach(function (field) {
-                                            var val = f.attributes[setting[field]];
-                                            var min = bounds[field].min;
-                                            var max = bounds[field].max;
-                                            var asc = null;
-                                            var dsc = null;
-                                            if (min === max){
-                                                asc = this.OFFSET;
-                                                dsc = this.OFFSET;
-                                            }
-                                            else{
-                                                var fac = min === max ? 0 : (val - min) / (max - min);
-                                                asc = (1 - fac) * this.HEIGHT + this.OFFSET;
-                                                dsc = fac * this.HEIGHT + this.OFFSET;
-                                            }
-                                            
-                                            var ascending = plane.position.clone();
-                                            var descending = plane.position.clone();
-                                            ascending.addScaledVector(normal, asc);
-                                            descending.addScaledVector(normal, dsc);
-
-                                            positions[field] = {
-                                                ascending: ascending,
-                                                descending: descending
-                                            };
-                                        }.bind(this));
-                                        plane.userData.positions = positions;
-
-                                        // Add to scene
-                                        this.images.add(plane);
-
-                                        // For the first animation 
-                                        var end = plane.userData.positions[this._sortField][this._sortOrder];
-                                        var start = end.clone();
-                                        start.addScaledVector(normal, -this.HEIGHT / 5);
-
-                                        // Create an animation action to move preview image into place.
-                                        var action = this.mixer.clipAction(
-                                            new THREE.AnimationClip('action', 1, [
-                                                new THREE.VectorKeyframeTrack(
-                                                    '.position', [0, 1], [
-                                                        start.x,
-                                                        start.y,
-                                                        start.z,
-                                                        end.x,
-                                                        end.y,
-                                                        end.z
-                                                    ],
-                                                    THREE.InterpolateSmooth
-                                                ),
-                                                new THREE.NumberKeyframeTrack(
-                                                    '.material[opacity]', [0, 1], [0, 1]
-                                                )
-                                            ]),
-                                            plane
-                                        );
-                                        action.setDuration(1);
-                                        action.setLoop(THREE.LoopOnce);
-                                        action.startAt(this.mixer.time);
-                                        action.clampWhenFinished = true;
-                                        action.play();
-
-                                        // Increment progressed counter.
-                                        var processed = this.images.children.length;
-                                        var total = e.features.length;
-
-                                        // Fire progress event.
-                                        if (progress) {
-                                            progress({
-                                                index: processed,
-                                                length: total
+                                            // Create textured material.
+                                            var material = new THREE.MeshLambertMaterial({
+                                                map: texture,
+                                                side: THREE.DoubleSide,
+                                                transparent: true,
+                                                opacity: 0,
+                                                emissiveIntensity: 0.5
                                             });
-                                        }
 
-                                        // Fire completed event.
-                                        if (processed === total) {
-                                            this.isDownloading = false;
-                                            if (completed) {
-                                                completed();
+                                            // Create a plane mesh from the geometry and material.
+                                            var plane = new THREE.Mesh(geometry, material);
+                                            plane.position.fromArray(coordinates);
+                                            plane.applyMatrix(matrix);
+                                            plane.userData.attributes = {
+                                                id: id,
+                                                name: f.attributes[setting.name],
+                                                date: f.attributes[setting.date],
+                                                sensor: f.attributes[setting.sensor],
+                                                cloud: f.attributes[setting.cloud],
+                                                sunAlt: f.attributes[setting.sunAlt],
+                                                sunAz: f.attributes[setting.sunAz]
+                                            };
+
+                                            // Pre-calculate all heights.
+                                            var positions = {};
+                                            var normal = plane.position.clone().normalize();
+                                            fields.forEach(function (field) {
+                                                var val = f.attributes[setting[field]];
+                                                var min = bounds[field].min;
+                                                var max = bounds[field].max;
+                                                var asc = null;
+                                                var dsc = null;
+                                                if (min === max) {
+                                                    asc = this.OFFSET;
+                                                    dsc = this.OFFSET;
+                                                }
+                                                else {
+                                                    var fac = min === max ? 0 : (val - min) / (max - min);
+                                                    asc = (1 - fac) * this.HEIGHT + this.OFFSET;
+                                                    dsc = fac * this.HEIGHT + this.OFFSET;
+                                                }
+
+                                                var ascending = plane.position.clone();
+                                                var descending = plane.position.clone();
+                                                ascending.addScaledVector(normal, asc);
+                                                descending.addScaledVector(normal, dsc);
+
+                                                positions[field] = {
+                                                    ascending: ascending,
+                                                    descending: descending
+                                                };
+                                            }.bind(this));
+                                            plane.userData.positions = positions;
+
+                                            // Add to scene
+                                            this.images.add(plane);
+
+                                            // For the first animation 
+                                            var end = plane.userData.positions[this._sortField][this._sortOrder];
+                                            var start = end.clone();
+                                            start.addScaledVector(normal, -this.HEIGHT / 5);
+
+                                            // Create an animation action to move preview image into place.
+                                            var action = this.mixer.clipAction(
+                                                new THREE.AnimationClip('action', 1, [
+                                                    new THREE.VectorKeyframeTrack(
+                                                        '.position', [0, 1], [
+                                                            start.x,
+                                                            start.y,
+                                                            start.z,
+                                                            end.x,
+                                                            end.y,
+                                                            end.z
+                                                        ],
+                                                        THREE.InterpolateSmooth
+                                                    ),
+                                                    new THREE.NumberKeyframeTrack(
+                                                        '.material[opacity]', [0, 1], [0, 1]
+                                                    )
+                                                ]),
+                                                plane
+                                            );
+                                            action.setDuration(1);
+                                            action.setLoop(THREE.LoopOnce);
+                                            action.startAt(this.mixer.time);
+                                            action.clampWhenFinished = true;
+                                            action.play();
+
+                                            // Increment progressed counter.
+                                            var processed = this.images.children.length;
+                                            var total = e.features.length;
+
+                                            // Fire progress event.
+                                            if (progress) {
+                                                progress({
+                                                    index: processed,
+                                                    length: total
+                                                });
                                             }
-                                        }
-                                    }.bind(this)
-                                );
-                            }.bind(this));
+
+                                            // Fire completed event.
+                                            if (processed === total) {
+                                                this.isDownloading = false;
+                                                if (completed) {
+                                                    completed();
+                                                }
+                                            }
+                                        }.bind(this)
+                                    );
+                                }.bind(this));
+                            }
                         }.bind(this));
                     }.bind(this));
                 }

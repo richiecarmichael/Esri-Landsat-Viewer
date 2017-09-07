@@ -76,26 +76,22 @@ body {
     bottom: 0;
 }
 
-.rc-footer {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 60px;
-}
-
-#button-previous{
+#button-previous {
     display: none;
     position: absolute;
     left: 50px;
     top: 0;
 }
 
-#button-next{
+#button-next {
     display: none;
     position: absolute;
     left: 150px;
     top: 0;
+}
+
+#buttons-help {
+    margin-top: 10px;
 }
 
 #pages {
@@ -109,7 +105,7 @@ body {
     padding: 10px 10px 10px 10px;
 }
 
-#media-list{
+#media-list {
     position: absolute;
     top: 60px;
     left: 10px;
@@ -119,16 +115,41 @@ body {
     overflow-y: auto;
 }
 
-#download-progress{
+#download-progress {
     margin-top: 25px;
 }
 
-#download-progress p{
+#download-progress p {
     text-align: center;
 }
 
-#button-cancel-download{
+#button-cancel-download {
     display: none;
+}
+
+#logo-esri {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    opacity: 0.5;
+}
+
+#logo-esri:hover {
+    opacity: 0.7;
+}
+
+.rc-footer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 60px;
+}
+
+.rc-center {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .rc-page {
@@ -162,12 +183,12 @@ body {
     border-radius: 0;
 }
 
-.rc-button-small{
+.rc-button-small {
     width: 40px;
     border-radius: 0;
 }
 
-.rc-button-small.rc-active{
+.rc-button-small.rc-active {
     background-color: orange;
     border-color: orange;
 }
@@ -196,4 +217,8 @@ body {
 .rc-popup-value {
     display: inline-block;
     font-size: 12px;
+}
+
+.rc-modal-content {
+    border-radius: 0 0 0 0;
 }

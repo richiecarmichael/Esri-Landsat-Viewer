@@ -40,6 +40,7 @@
 </head>
 <body>
     <div id='map'></div>
+    <a id='logo-esri' target='_blank' href='https://www.esri.com'><img src='img/esri-white.png' height='53' /></a>
     <div id='left-panel'>
         <div id='banner'>
             <div id='banner-text'>Landsat Viewer</div>
@@ -49,6 +50,10 @@
                 <div class='rc-page' data-value='1'>
                     <p>Define an area of interest by clicking the draw button below and dragging an extent on the globe.</p>
                     <button id='button-draw' type='button' class='btn btn-primary rc-button'>Draw</button>
+                    <div id='buttons-help' class='btn-group'>
+                        <button id='button-help' type='button' class='btn btn-info rc-button' data-toggle='modal' data-target='#modal-help'>Help</button>
+                        <button id='button-about' type='button' class='btn btn-info rc-button' data-toggle='modal' data-target='#modal-about'>About</button>
+                    </div>
                 </div>
                 <div class='rc-page' data-value='2'>
                     <p>Define the criteria for preview images.</p>
@@ -166,6 +171,47 @@
                 <div class='btn-group' role='group'>
                     <button id='button-previous' type='button' class='btn btn-primary rc-button'><span class='glyphicon glyphicon-chevron-left' aria-hidden='true'></span> Previous</button>
                     <button id='button-next' type='button' class='btn btn-primary rc-button'>Next <span class='glyphicon glyphicon-chevron-right' aria-hidden='true'></span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class='modal fade' id='modal-help' tabindex='-1' role='dialog' aria-labelledby='label1'>
+        <div class='modal-dialog modal-lg' role='document'>
+            <div class='modal-content rc-modal-content'>
+                <div class='modal-header'>
+                    <button type='button' class='close' data-dismiss='modal' aria-label='Close'><span aria-hidden='true'>&times;</span></button>
+                    <h4 class='modal-title' id='label1'>How to use this App</h4>
+                </div>
+                <div class='modal-body'>
+                    <div class="embed-responsive embed-responsive-16by9">
+                        <iframe src='https://www.youtube.com/embed/PBo51_m-5A0?rel=0' allowfullscreen></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class='modal fade' id='modal-about' tabindex='-1' role='dialog' aria-labelledby='label2'>
+        <div class='modal-dialog' role='document'>
+            <div class='modal-content rc-modal-content'>
+                <div class='modal-header'>
+                    <button type='button' class='close' data-dismiss='modal' aria-label='Close'><span aria-hidden='true'>&times;</span></button>
+                    <h4 class='modal-title' id='label2'>About this App</h4>
+                </div>
+                <div class='modal-body'>
+                    <p><img class='rc-center' src='img/esri-black.png' height='43' /></p>
+                    <p>This application was designed and developed by <a target='_blank' href='https://www.esri.com/'>Esri</a>'s <a target='_blank' href='https://geonet.esri.com/groups/applications-prototype-lab'>Applications Prototype Lab</a> in Redlands, California.</p>
+                    <p>The source code is available <a target='_blank' href='https://github.com/richiecarmichael/Esri-Landsat-Viewer'>here</a>.</p>
+                    <p>
+                        The application was built using the following technologies:
+                        <ul style='margin-left: -20px;'>
+                            <li><a target='_blank' href='https://developers.arcgis.com/javascript/'>ArcGIS API for JavaScript</a> by <a target='_blank' href='https://www.esri.com'>Esri</a></li>
+                            <li><a target='_blank' href='https://getbootstrap.com/'>Bootstrap</a> by <a target='_blank' href='https://twitter.com/'>Twitter Inc.</a></li>
+                            <li><a target='_blank' href='https://github.com/seiyria/bootstrap-slider'>Bootstrap Slider</a> by <a target='_blank' href='https://github.com/seiyria'>Kyle J. Kemp</a></li>
+                            <li><a target='_blank' href='https://jquery.com/'>jQuery</a> by the jQuery Foundation Inc.</li>
+                            <li><a target='_blank' href='https://threejs.org/'>three.js</a> by <a target='_blank' href='https://github.com/mrdoob'>Mr.doob</a></li>
+                        </ul>
+                    </p>
+                    <p>The <a target='_blank' href='https://www.usgs.gov/'>USGS</a>'s <a target='_blank' href='https://landsat.usgs.gov/'>Landsat program</a> has been imaging the Earth for the past 45 years (see <a target='_blank' href='https://en.wikipedia.org/wiki/Landsat_program'>wiki</a>). Click <a target='_blank' href='https://www.esri.com/software/landsat-imagery'>here</a>, <a target='_blank' href='https://www.esri.com/landing-pages/software/landsat/unlock-earths-secrets'>here</a> and <a target='_blank' href='https://www.arcgis.com/home/item.html?id=d9b466d6a9e647ce8d1dd5fe12eb434b'>here</a> to learn more about the Landsat imagery hosted by Esri and specifically the recently announced <a target='_blank' href='http://landsatexplorer.esri.com/'>Landsat Explorer</a> app.</p>
                 </div>
             </div>
         </div>
