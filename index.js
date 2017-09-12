@@ -1121,7 +1121,9 @@ require([
                                 setting.date + ' ASC'
                             ],
                             outSpatialReference: this.view.spatialReference,
-                            where: where
+                            where: where,
+                            start: 0,
+                            num: 1000
                         });
 
                         // Query task
