@@ -201,7 +201,7 @@ require([
                         title: 'Download',
                         id: 'download',
                         className: 'esri-icon-download'
-                    });
+                });
                 _view.popup.on('trigger-action', function (e) {
                     switch (e.action.id) {
                         case 'add-to-scene':
@@ -224,6 +224,21 @@ require([
 
                             break;
                         case 'download':
+                            // Show download modal dialog.
+                            $('#modal-download .modal-body').empty();
+                            $('#modal-download .modal-body').append(
+                                $(
+                                    string.substitute(
+                                        '<p><img class="rc-center" src="${thumbnail}" width="256" /></p>' +
+                                        '<p>Click <a target="_blank" href="${download}">here</a> to download a high resolution photo.</p>',
+                                        {
+                                            thumbnail: _landsat._selected.userData.attributes.thumbnail,
+                                            download: _landsat._selected.userData.attributes.download
+                                        }
+                                    )
+                                )
+                            );
+                            $('#modal-download').modal('show');
                             break;
                     }
                 });
@@ -445,6 +460,7 @@ require([
                 $('.rc-host button').removeClass('disabled');
                 $('#slider-date, #slider-cloud, #slider-resolution').slider('enable');
                 $('#satellites .checkbox').removeClass('disabled');
+                $('#satellites input').prop('disabled', false);
             });
             $('.rc-sort-button').click(function () {
                 // Exit if already checked.
@@ -481,6 +497,13 @@ require([
                     $(this).html() + ' <span class=\'caret\'></span>'
                 );
             });
+
+            //
+            $('#modal-help').on('hidden.bs.modal', function () {
+                var vid = $('#player').prop('src');
+                $('#player').prop('src', '');
+                $('#player').prop('src', vid);
+            })
 
             function pageUpdates() {
                 // Show current page.
@@ -575,7 +598,7 @@ require([
                                 $('.rc-host button').removeClass('disabled');
                                 $('#slider-date, #slider-cloud, #slider-resolution').slider('enable');
                                 $('#satellites .checkbox').removeClass('disabled');
-                                $('#satellites input').removeProp('disabled');
+                                $('#satellites input').prop('disabled', false);
                             } else {
                                 $('#button-start-download').hide();
                                 $('#button-clear').show();
@@ -664,7 +687,8 @@ require([
                     cloud: 'cloudCover',
                     cloudFactor: 100,
                     sunAlt: 'sunElevation',
-                    sunAz: 'sunAzimuth'
+                    sunAz: 'sunAzimuth',
+                    downloadSize: 10000 
                 },
                 ESRI: {
                     host: 'ESRI',
@@ -684,7 +708,8 @@ require([
                     cloud: 'CloudCover',
                     cloudFactor: 1,
                     sunAlt: 'SunElevation',
-                    sunAz: 'SunAzimuth'
+                    sunAz: 'SunAzimuth',
+                    downloadSize: 2000 
                 },
 
                 // Height limits and offset off the ground.
@@ -851,7 +876,7 @@ require([
                     this.view.popup.open({
                         content: $(content)[0],
                         location: geographic,
-                        title: 'landsat Scene'
+                        title: 'Landsat Scene'
                     });
 
                     this.view.popup.watch('visible', function (v) {
@@ -1179,33 +1204,41 @@ require([
                                     var extent = f.geometry.extent;
                                     var id = f.attributes[oidField];
                                     var rf = new RasterFunction(setting.rasterFunction);
+                                    var wkid = this.view.spatialReference.wkid;
 
                                     // Construct url to lock raster image
-                                    var url = setting.url;
-                                    url += '/exportImage?f=image';
-                                    url += string.substitute('&bbox=${xmin},${ymin},${xmax},${ymax}', {
-                                        xmin: extent.xmin,
-                                        ymin: extent.ymin,
-                                        xmax: extent.xmax,
-                                        ymax: extent.ymax
-                                    });
-                                    url += '&bboxSR=' + this.view.spatialReference.wkid;
-                                    url += '&imageSR=' + this.view.spatialReference.wkid;
-                                    url += '&format=' + 'png';
-                                    url += '&interpolation=' + 'RSP_BilinearInterpolation';
-                                    url += '&mosaicRule=' + string.substitute('{mosaicMethod:\'esriMosaicLockRaster\',lockRasterIds:[${id}]}', {
-                                        id: id
-                                    });
-                                    url += string.substitute('&size=${w},${h}', {
-                                        w: parameters.resolution,
-                                        h: parameters.resolution
-                                    });
-                                    url += '&renderingRule=' + JSON.stringify(rf.toJSON());
+                                    function getUrl(size, format) {
+                                        var url = setting.url;
+                                        url += string.substitute('/${id}/image?f=image', {
+                                            id: id
+                                        });
+                                        url += string.substitute('&bbox=${xmin},${ymin},${xmax},${ymax}', {
+                                            xmin: extent.xmin,
+                                            ymin: extent.ymin,
+                                            xmax: extent.xmax,
+                                            ymax: extent.ymax
+                                        });
+                                        url += '&bboxSR=' + wkid;
+                                        url += '&imageSR=' + wkid;
+                                        url += '&format=' + format;
+                                        url += '&interpolation=' + 'RSP_BilinearInterpolation';
+                                        url += string.substitute('&size=${w},${h}', {
+                                            w: size,
+                                            h: size
+                                        });
+                                        url += '&renderingRule=' + JSON.stringify(rf.toJSON());
+                                        return url;
+                                    }
 
+                                    // Get thumbnail and download urls
+                                    var thumbnail = getUrl(parameters.resolution, 'png');
+                                    var download = getUrl(setting.downloadSize, 'jpg');
+
+                                    //
                                     var loader = new THREE.TextureLoader();
                                     loader.setCrossOrigin('');
                                     loader.load(
-                                        url,
+                                        thumbnail,
                                         function (texture) {
                                             // Exit if user cancelled image loading.
                                             if (this._cancelDownload) {
@@ -1261,7 +1294,9 @@ require([
                                                 sensor: f.attributes[setting.sensor],
                                                 cloud: f.attributes[setting.cloud],
                                                 sunAlt: f.attributes[setting.sunAlt],
-                                                sunAz: f.attributes[setting.sunAz]
+                                                sunAz: f.attributes[setting.sunAz],
+                                                thumbnail: thumbnail,
+                                                download: download
                                             };
 
                                             // Pre-calculate all heights.
