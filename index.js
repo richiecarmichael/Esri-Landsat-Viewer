@@ -198,9 +198,9 @@ require([
                     id: 'add-to-scene',
                     className: 'esri-icon-plus'
                 }, {
-                        title: 'Download',
-                        id: 'download',
-                        className: 'esri-icon-download'
+                    title: 'Download',
+                    id: 'download',
+                    className: 'esri-icon-download'
                 });
                 _view.popup.on('trigger-action', function (e) {
                     switch (e.action.id) {
